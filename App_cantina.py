@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """
-Tu Cantina Express - POS & CRM Local
-Optimizado para móvil, alta velocidad y producción.
+Tu Cantina Express v4
+POS & CRM local, mobile-first, tema claro forzado, UI/UX pulida.
 """
 import streamlit as st
 import sqlite3
@@ -26,93 +26,350 @@ st.set_page_config(
 DB_PATH = Path("cantina.db")
 TIPOS_TASA = ("BCV USD", "BCV EUR", "Personalizada")
 
+
 # ============================================================
-# CSS COMPACTO MOBILE-FIRST
+# CSS PULIDO — SIN BORDES, CON JERARQUÍA, ESPACIADO 8PX
 # ============================================================
 def inject_css():
     st.markdown(
         """<style>
+        /* ===== Reset / ocultar ===== */
         #MainMenu,footer,header,.stDeployButton,[data-testid="stToolbar"],
         [data-testid="stStatusWidget"],[data-testid="stDecoration"]{display:none!important;}
-        .main .block-container{padding:.35rem .55rem 5rem .55rem;max-width:520px;margin:auto;}
-        .stApp{background:#f6f8fa;}
+
+        :root{
+            --azul:#0e3a5a;
+            --azul-2:#14496f;
+            --ambar:#f39c12;
+            --verde:#27ae60;
+            --rojo:#e74c3c;
+            --tx:#0f172a;
+            --tx-2:#475569;
+            --tx-3:#94a3b8;
+            --fondo:#f6f8fa;
+            --card:#ffffff;
+            --linea:#e2e8f0;
+            --sombra:0 2px 6px rgba(15,23,42,.06);
+            --sombra-sm:0 1px 4px rgba(15,23,42,.05);
+        }
+
         * {font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;}
 
-        .hdr{background:linear-gradient(135deg,#0e3a5a,#14496f);color:#fff;
-             padding:9px 12px;border-radius:12px;box-shadow:0 3px 8px rgba(14,58,90,.28);
-             margin-bottom:8px;}
-        .hdr h1{font-size:1rem;margin:0;font-weight:800;letter-spacing:.2px;}
-        .hdr .sub{font-size:.62rem;opacity:.82;margin-top:1px;}
-        .pill{display:inline-block;background:rgba(243,156,18,.2);color:#f39c12;
-              border:1px solid rgba(243,156,18,.5);padding:2px 7px;border-radius:20px;
-              font-size:.6rem;font-weight:800;margin-right:4px;margin-top:4px;}
-        .pill.g{background:rgba(39,174,96,.2);color:#27ae60;border-color:rgba(39,174,96,.5);}
+        .main .block-container{
+            padding:.5rem .7rem 5rem .7rem;
+            max-width:520px;
+            margin:auto;
+        }
+        .stApp{background:var(--fondo);}
 
-        .sec{font-size:.76rem;font-weight:800;color:#0e3a5a;margin:6px 0 4px;
-             border-left:3px solid #f39c12;padding-left:6px;}
+        /* Reducir gaps verticales */
+        [data-testid="stVerticalBlock"] > [data-testid="stVerticalBlock"]{gap:.45rem;}
+        .element-container{margin-bottom:0 !important;}
+        hr{display:none;}
 
-        .pcard{background:#fff;border-radius:10px;padding:6px 4px 5px;text-align:center;
-               box-shadow:0 1px 4px rgba(0,0,0,.07);border:1px solid #e8ecf1;
-               margin-bottom:3px;position:relative;overflow:hidden;}
-        .pcard .e{font-size:1.35rem;line-height:1;}
-        .pcard .n{font-size:.68rem;font-weight:800;color:#0e3a5a;margin-top:2px;
-                  line-height:1.05;min-height:1.5em;
-                  display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;
-                  overflow:hidden;text-overflow:ellipsis;}
-        .pcard .p{font-size:.74rem;font-weight:900;color:#f39c12;margin-top:2px;}
-        .pcard .b{font-size:.6rem;color:#7a8794;}
+        /* ===== LABELS E INPUTS ===== */
+        .stTextInput label, .stNumberInput label, .stSelectbox label,
+        .stTextArea label, .stMultiSelect label, .stRadio label,
+        .stCheckbox label, .stSlider label, .stFileUploader label,
+        div[data-testid="stWidgetLabel"] label,
+        div[data-testid="stWidgetLabel"] p{
+            color:var(--tx) !important;
+            font-weight:600 !important;
+            font-size:.78rem !important;
+            opacity:1 !important;
+            letter-spacing:.1px;
+        }
+        .stTextInput input::placeholder,
+        .stNumberInput input::placeholder{
+            color:var(--tx-3) !important;
+            opacity:1 !important;
+        }
+        .stTextInput input,
+        .stNumberInput input,
+        .stTextArea textarea{
+            background:var(--card) !important;
+            color:var(--tx) !important;
+            border:1px solid var(--linea) !important;
+            border-radius:10px !important;
+            font-size:.88rem !important;
+            padding:8px 12px !important;
+            box-shadow:none !important;
+        }
+        .stTextInput input:focus,
+        .stNumberInput input:focus,
+        .stTextArea textarea:focus{
+            border-color:var(--azul) !important;
+            box-shadow:0 0 0 3px rgba(14,58,90,.1) !important;
+        }
+        div[data-baseweb="select"] > div{
+            background:var(--card) !important;
+            color:var(--tx) !important;
+            border:1px solid var(--linea) !important;
+            border-radius:10px !important;
+            min-height:38px;
+        }
+        div[data-baseweb="select"] span,
+        div[data-baseweb="select"] div[aria-selected],
+        div[data-baseweb="select"] input{color:var(--tx) !important;}
+        ul[data-baseweb="menu"], div[data-baseweb="popover"]{
+            background:var(--card) !important;
+            color:var(--tx) !important;
+            border-radius:10px !important;
+            box-shadow:var(--sombra) !important;
+            border:1px solid var(--linea) !important;
+        }
+        ul[data-baseweb="menu"] li{
+            color:var(--tx) !important;
+            background:transparent !important;
+            font-size:.85rem;
+        }
+        ul[data-baseweb="menu"] li:hover{background:#f1f5f9 !important;}
+        .stNumberInput button{
+            background:#f1f5f9 !important;
+            color:var(--tx) !important;
+            border:none !important;
+        }
+        .stNumberInput button:hover{background:#e2e8f0 !important;}
 
+        /* ===== HEADER ===== */
+        .hdr{
+            background:linear-gradient(135deg,var(--azul),var(--azul-2));
+            color:#fff;padding:14px 16px;border-radius:16px;
+            margin-bottom:12px;
+            box-shadow:0 6px 16px rgba(14,58,90,.18);
+        }
+        .hdr-top{display:flex;justify-content:space-between;align-items:center;
+                 font-size:.88rem;font-weight:800;letter-spacing:.1px;}
+        .hdr-top .date{font-size:.64rem;opacity:.72;font-weight:500;}
+        .hdr-tasa{margin-top:10px;display:flex;align-items:baseline;gap:10px;}
+        .hdr-tasa .lbl{font-size:.58rem;opacity:.65;text-transform:uppercase;
+                       letter-spacing:.7px;font-weight:700;}
+        .hdr-tasa .val{font-size:1.5rem;font-weight:900;color:var(--ambar);
+                       letter-spacing:-.5px;line-height:1;}
+        .hdr-alt{margin-top:6px;font-size:.66rem;opacity:.65;}
+        .hdr-alt .dot{margin:0 8px;opacity:.4;}
+
+        /* ===== SECCIONES (títulos discretos) ===== */
+        .sec{
+            font-size:.68rem;font-weight:800;color:var(--tx-3);
+            letter-spacing:.7px;text-transform:uppercase;
+            margin:14px 0 6px;padding:0;
+            border:none;
+        }
+
+        /* ===== TARJETA PRODUCTO ===== */
+        .pcard{
+            background:var(--card);
+            border-radius:12px;
+            padding:10px 8px 8px;
+            text-align:center;
+            box-shadow:var(--sombra);
+            margin-bottom:6px;
+            transition:transform .12s ease;
+        }
+        .pcard .e{font-size:1.6rem;line-height:1;display:block;}
+        .pcard .n{
+            font-size:.78rem;font-weight:700;color:var(--tx);
+            margin-top:6px;line-height:1.15;
+            display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;
+            overflow:hidden;min-height:1.8em;
+        }
+        .pcard .p{
+            font-size:.92rem;font-weight:900;color:var(--ambar);
+            margin-top:6px;letter-spacing:-.3px;
+        }
+        .pcard .b{font-size:.66rem;color:var(--tx-3);margin-top:2px;font-weight:500;}
+
+        /* ===== BOTONES ===== */
         div.stButton>button{
-            width:100%;border-radius:8px;font-weight:800;border:none;
-            padding:.32rem .2rem;font-size:.76rem;line-height:1;min-height:0;
+            width:100%;
+            border-radius:10px;
+            font-weight:700;
+            border:1px solid var(--linea);
+            background:var(--card);
+            color:var(--tx);
+            padding:.5rem .35rem;
+            font-size:.8rem;
+            line-height:1.1;
+            min-height:0;
+            box-shadow:0 1px 2px rgba(15,23,42,.04);
+            transition:all .12s ease;
         }
-        div.stButton>button[kind="primary"]{background:#f39c12;color:#fff;}
-        div.stButton>button[kind="primary"]:hover{background:#d68910;color:#fff;}
+        div.stButton>button:hover{border-color:#cbd5e1;background:#f8fafc;}
+        div.stButton>button:active{transform:scale(.98);}
+        div.stButton>button[kind="primary"]{
+            background:var(--verde);color:#fff;border:none;
+            box-shadow:0 3px 8px rgba(39,174,96,.25);
+        }
+        div.stButton>button[kind="primary"]:hover{background:#229954;}
 
-        .mc{background:#fff;border-radius:10px;padding:7px 5px;text-align:center;
-            box-shadow:0 1px 4px rgba(0,0,0,.06);border-left:3px solid #0e3a5a;
-            margin-bottom:4px;}
-        .mc .l{font-size:.58rem;color:#6c7a89;text-transform:uppercase;font-weight:800;letter-spacing:.3px;}
-        .mc .v{font-size:.92rem;font-weight:900;color:#0e3a5a;margin-top:1px;}
-        .mc.gold{border-left-color:#f39c12;}
-        .mc.green{border-left-color:#27ae60;}
-        .mc.red{border-left-color:#e74c3c;}
+        /* Botón "fiar" (rojo outline) */
+        .btn-fiar button{
+            background:var(--card) !important;
+            color:var(--rojo) !important;
+            border:1.5px solid var(--rojo) !important;
+        }
+        .btn-fiar button:hover{background:#fef2f2 !important;}
 
-        .ci{background:#fff;border-radius:9px;padding:5px 8px;margin-bottom:4px;
-            box-shadow:0 1px 3px rgba(0,0,0,.05);border:1px solid #eef1f4;}
-        .ci .t{font-size:.76rem;font-weight:800;color:#0e3a5a;}
-        .ci .s{font-size:.64rem;color:#6c7a89;line-height:1.25;}
+        /* ===== MÉTRICAS ===== */
+        .mc{
+            background:var(--card);border-radius:12px;padding:10px 8px;
+            text-align:center;box-shadow:var(--sombra);margin-bottom:6px;
+            border-left:none;position:relative;overflow:hidden;
+        }
+        .mc::before{
+            content:"";position:absolute;left:0;top:0;bottom:0;width:3px;
+            background:var(--azul);
+        }
+        .mc.gold::before{background:var(--ambar);}
+        .mc.green::before{background:var(--verde);}
+        .mc.red::before{background:var(--rojo);}
+        .mc .l{
+            font-size:.6rem;color:var(--tx-3);text-transform:uppercase;
+            font-weight:800;letter-spacing:.6px;
+        }
+        .mc .v{
+            font-size:1rem;font-weight:900;color:var(--tx);
+            margin-top:3px;letter-spacing:-.3px;
+        }
 
-        .stTabs [data-baseweb="tab-list"]{gap:2px;background:#eef1f4;padding:2px;border-radius:9px;}
-        .stTabs [data-baseweb="tab"]{border-radius:7px;font-weight:800;font-size:.7rem;
-                                     padding:4px 6px;color:#0e3a5a;min-height:0;}
-        .stTabs [aria-selected="true"]{background:#0e3a5a!important;color:#fff!important;}
+        /* ===== ITEMS (carrito / CRM / historial) ===== */
+        .ci{
+            background:var(--card);border-radius:11px;padding:8px 11px;
+            margin-bottom:5px;box-shadow:var(--sombra-sm);border:none;
+        }
+        .ci .t{font-size:.82rem;font-weight:700;color:var(--tx);line-height:1.25;}
+        .ci .s{font-size:.68rem;color:var(--tx-3);line-height:1.35;margin-top:2px;}
+        .ci .row{display:flex;justify-content:space-between;align-items:baseline;}
+        .ci .estado{font-size:.68rem;font-weight:800;}
+        .ci .estado.ok{color:var(--verde);}
+        .ci .estado.pend{color:var(--rojo);}
+
+        /* ===== TABS (tab bar limpio) ===== */
+        .stTabs [data-baseweb="tab-list"]{
+            gap:0;
+            background:transparent;
+            padding:0;
+            border-bottom:1px solid var(--linea);
+            border-radius:0;
+            overflow-x:auto !important;
+            overflow-y:hidden;
+            flex-wrap:nowrap !important;
+            justify-content:space-between;
+            scrollbar-width:none;
+            -ms-overflow-style:none;
+            -webkit-overflow-scrolling:touch;
+        }
+        .stTabs [data-baseweb="tab-list"]::-webkit-scrollbar{display:none;}
+        .stTabs [data-baseweb="tab"]{
+            border-radius:0;
+            font-weight:700;
+            font-size:1.05rem;
+            padding:8px 14px;
+            color:var(--tx-3) !important;
+            background:transparent !important;
+            min-height:0;
+            white-space:nowrap !important;
+            flex:0 0 auto !important;
+            border-bottom:2px solid transparent;
+            transition:all .15s ease;
+        }
+        .stTabs [data-baseweb="tab"]:hover{color:var(--tx-2) !important;}
+        .stTabs [aria-selected="true"]{
+            color:var(--azul) !important;
+            border-bottom:2px solid var(--azul) !important;
+            background:transparent !important;
+        }
         .stTabs [data-baseweb="tab-highlight"]{display:none;}
+        .stTabs [data-baseweb="tab-border"]{display:none;}
 
-        .stTextInput input,.stNumberInput input,
-        .stSelectbox div[data-baseweb="select"]>div{
-            border-radius:8px!important;font-size:.82rem!important;
+        /* ===== DATAFRAMES (claro) ===== */
+        div[data-testid="stDataFrame"]{
+            background:var(--card) !important;
+            border-radius:11px !important;
+            overflow:hidden !important;
+            box-shadow:var(--sombra-sm) !important;
+            border:none !important;
+        }
+        div[data-testid="stDataFrame"] *{color:var(--tx) !important;}
+        div[data-testid="stDataFrame"] [role="columnheader"]{
+            background:#f8fafc !important;color:var(--tx-2) !important;
+            font-weight:800 !important;font-size:.68rem !important;
+            text-transform:uppercase;letter-spacing:.4px;
+        }
+        div[data-testid="stDataFrame"] [role="gridcell"]{
+            font-size:.76rem !important;
         }
 
-        .wa{display:block;text-align:center;background:#25D366;color:#fff!important;
-            padding:5px 4px;border-radius:8px;font-weight:800;text-decoration:none;
-            font-size:.68rem;line-height:1.1;}
+        /* ===== ALERTS ===== */
+        div[data-testid="stAlert"]{
+            background:#eff6ff !important;color:var(--tx) !important;
+            border-radius:10px !important;border-left:3px solid var(--azul) !important;
+            padding:8px 12px !important;
+        }
+        div[data-testid="stAlert"] *{color:var(--tx) !important;font-size:.78rem;}
+        div[data-testid="stAlert"][data-baseweb="notification"] svg{display:none;}
 
-        .car-total{background:#0e3a5a;color:#fff;border-radius:11px;
-                   padding:9px 12px;margin-top:5px;box-shadow:0 3px 9px rgba(14,58,90,.25);}
-        .car-total .row{display:flex;justify-content:space-between;font-size:.82rem;}
-        .car-total .row.big{font-size:.98rem;font-weight:900;}
+        /* ===== WHATSAPP ===== */
+        .wa{
+            display:block;text-align:center;background:#25D366;color:#fff !important;
+            padding:8px 6px;border-radius:10px;font-weight:700;text-decoration:none;
+            font-size:.76rem;line-height:1.1;margin-top:2px;
+            box-shadow:0 2px 6px rgba(37,211,102,.28);
+        }
+        .wa:hover{background:#1faa52;}
+
+        /* ===== CARRITO TOTAL ===== */
+        .car-total{
+            background:linear-gradient(135deg,var(--azul),var(--azul-2));
+            color:#fff;border-radius:14px;padding:12px 14px;margin-top:8px;
+            box-shadow:0 6px 16px rgba(14,58,90,.2);
+        }
+        .car-total .row{display:flex;justify-content:space-between;align-items:baseline;
+                        font-size:.8rem;opacity:.9;}
+        .car-total .row.big{
+            font-size:1.15rem;font-weight:900;opacity:1;margin-top:3px;
+            letter-spacing:-.4px;
+        }
+        .car-total .tasa-note{
+            font-size:.6rem;opacity:.6;margin-top:6px;
+            text-transform:uppercase;letter-spacing:.4px;
+        }
+
+        /* ===== EXPANDER ===== */
+        details, summary{background:transparent;}
+        details > summary{
+            list-style:none;padding:8px 10px !important;
+            font-size:.8rem;font-weight:700;color:var(--tx);
+            background:var(--card);border-radius:10px;
+            box-shadow:var(--sombra-sm);
+        }
+        details[open] > summary{border-radius:10px 10px 0 0;}
+
+        /* ===== FORMULARIOS ===== */
+        [data-testid="stForm"]{
+            border:none !important;background:transparent !important;
+            padding:0 !important;
+        }
+        [data-testid="stForm"] label,
+        [data-testid="stForm"] p{
+            color:var(--tx) !important;font-weight:700 !important;
+        }
+
+        /* Info blue (aviso tasa 0) */
+        div[data-testid="stAlert"][data-baseweb="notification"]{
+            margin-bottom:8px;
+        }
         </style>""",
         unsafe_allow_html=True,
     )
 
 
 # ============================================================
-# CONEXIÓN SQLITE OPTIMIZADA
+# SQLITE
 # ============================================================
 @contextmanager
 def db(commit=False):
-    """Context manager de conexión SQLite con WAL, timeout y foreign_keys."""
     conn = sqlite3.connect(str(DB_PATH), timeout=15, isolation_level=None)
     try:
         conn.execute("PRAGMA journal_mode=WAL")
@@ -134,7 +391,6 @@ def db(commit=False):
 
 
 def init_db():
-    """Crea tablas y configuración por defecto. Catálogo INICIALMENTE VACÍO."""
     with db(commit=True) as c:
         cur = c.cursor()
         cur.execute("""CREATE TABLE IF NOT EXISTS configuracion(
@@ -188,13 +444,13 @@ def init_db():
 
 
 # ============================================================
-# CONSULTAS CRUD
+# CRUD
 # ============================================================
 @st.cache_data(ttl=3, show_spinner=False)
 def get_config() -> dict:
     with db() as c:
         rows = c.execute("SELECT llave,valor FROM configuracion").fetchall()
-    return {k: v for k, v in rows}
+    return dict(rows)
 
 
 def set_config(llave: str, valor: str) -> None:
@@ -231,6 +487,12 @@ def add_producto(emoji, nombre, precio_usd, costo_usd, categoria, sku) -> None:
                 (sku or "").strip(),
             ),
         )
+    get_productos.clear()
+
+
+def eliminar_producto(pid: int) -> None:
+    with db(commit=True) as c:
+        c.execute("DELETE FROM productos WHERE id=?", (int(pid),))
     get_productos.clear()
 
 
@@ -330,17 +592,25 @@ def abonar_venta(venta_id: int) -> None:
     get_deudas.clear()
 
 
-def eliminar_producto(pid: int) -> None:
+def eliminar_venta(venta_id: int) -> None:
     with db(commit=True) as c:
-        c.execute("DELETE FROM productos WHERE id=?", (int(pid),))
-    get_productos.clear()
+        c.execute("DELETE FROM ventas WHERE id=?", (int(venta_id),))
+    get_ventas.clear()
+    get_deudas.clear()
+
+
+def eliminar_todas_ventas() -> None:
+    with db(commit=True) as c:
+        c.execute("DELETE FROM ventas")
+        c.execute("DELETE FROM sqlite_sequence WHERE name='ventas'")
+    get_ventas.clear()
+    get_deudas.clear()
 
 
 # ============================================================
 # UTILIDADES
 # ============================================================
 def sanitizar_telefono(tel: str, con_prefijo: bool = True) -> str:
-    """Limpia teléfono. con_prefijo=True -> formato 58XXXXXXXXXX para wa.me"""
     if tel is None:
         return ""
     d = "".join(ch for ch in str(tel) if ch.isdigit())
@@ -388,15 +658,23 @@ def construir_mensaje_recordatorio(representante, alumno,
         f"${round(float(monto_usd), 2):,.2f} USD "
         f"(equivalente a Bs. {round(float(monto_bs), 2):,.2f} a la tasa de hoy). "
         f"¡Muchas gracias!"
-        )# ============================================================
-# CALLBACKS DEL CARRITO
+    )
+
+
+def fecha_corta(f: str) -> str:
+    """YYYY-MM-DD HH:MM:SS -> DD/MM HH:MM"""
+    try:
+        dt = datetime.strptime(f, "%Y-%m-%d %H:%M:%S")
+        return dt.strftime("%d/%m · %H:%M")
+    except Exception:
+        return f[:16]# ============================================================
+# CALLBACKS CARRITO
 # ============================================================
 def _car_key(pid) -> str:
     return f"p{int(pid)}"
 
 
 def cb_add(pid: int, emoji: str, nombre: str, precio: float):
-    """Callback: añade 1 unidad al carrito."""
     k = _car_key(pid)
     car = st.session_state.carrito
     if k in car:
@@ -423,13 +701,8 @@ def cb_del(k: str):
     st.session_state.carrito.pop(k, None)
 
 
-def cb_clear():
-    st.session_state.carrito = {}
-    st.session_state["_reset_cliente"] = True
-
-
 # ============================================================
-# HELPERS DE CARRITO
+# HELPERS CARRITO
 # ============================================================
 def carrito_total_usd() -> float:
     return round(
@@ -446,22 +719,27 @@ def carrito_detalle_txt() -> str:
 
 
 # ============================================================
-# UI: HEADER Y MÉTRICAS
+# HEADER PULIDO
 # ============================================================
 def render_header(cfg: dict):
     t = obtener_tasa_activa(cfg)
+    tipo = cfg.get("tasa_activa_tipo", "BCV USD")
     usd = float(cfg.get("tasa_bcv_usd", 0) or 0)
     eur = float(cfg.get("tasa_bcv_eur", 0) or 0)
-    tipo = cfg.get("tasa_activa_tipo", "BCV USD")
     st.markdown(
         f"""<div class="hdr">
-        <h1>🍽️ Tu Cantina Express</h1>
-        <div class="sub">POS & CRM · {datetime.now().strftime('%d/%m/%Y')}</div>
-        <div>
-            <span class="pill g">TASA ({tipo}): Bs. {t:,.2f}</span>
-            <span class="pill">USD {usd:,.2f}</span>
-            <span class="pill">EUR {eur:,.2f}</span>
-        </div></div>""",
+            <div class="hdr-top">
+                <span>🍽️ Tu Cantina Express</span>
+                <span class="date">{datetime.now().strftime('%d/%m/%Y')}</span>
+            </div>
+            <div class="hdr-tasa">
+                <span class="lbl">{tipo}</span>
+                <span class="val">Bs. {t:,.2f}</span>
+            </div>
+            <div class="hdr-alt">
+                USD {usd:,.2f}<span class="dot">·</span>EUR {eur:,.2f}
+            </div>
+        </div>""",
         unsafe_allow_html=True,
     )
 
@@ -475,7 +753,7 @@ def metric_card(label: str, value: str, variante: str = ""):
 
 
 # ============================================================
-# POS: FINALIZAR VENTA (sin tocar widgets ya instanciados)
+# POS: FINALIZAR VENTA
 # ============================================================
 def _finalizar_venta(estado: str, tasa: float):
     car = st.session_state.carrito
@@ -503,7 +781,6 @@ def _finalizar_venta(estado: str, tasa: float):
     registrar_venta(cid, cn, al, rep, total_usd, total_bs,
                     tasa, estado, carrito_detalle_txt())
 
-    # Banderas de reset (NO tocar st.session_state.carrito ni cliente_sel aquí)
     st.session_state["_reset_venta"] = True
     st.session_state["_venta_msg"] = (
         f"{'✅ PAGADO' if estado == 'Pagado' else '🔴 FIADO'}: "
@@ -519,7 +796,6 @@ def modulo_pos(cfg: dict):
     tasa = obtener_tasa_activa(cfg)
     pdf = get_productos()
 
-    # --- Filtros ---
     if not pdf.empty:
         cats = ["Todas"] + sorted(pdf["categoria"].dropna().unique().tolist())
         c1, c2 = st.columns([3, 2], gap="small")
@@ -535,8 +811,7 @@ def modulo_pos(cfg: dict):
                 "Cat", cats, key="cat_fil", label_visibility="collapsed",
             )
 
-    # --- Grid 2 columnas ---
-    st.markdown('<div class="sec">📦 Catálogo</div>', unsafe_allow_html=True)
+    st.markdown('<div class="sec">Catálogo</div>', unsafe_allow_html=True)
 
     if pdf.empty:
         st.info("Catálogo vacío. Agrega productos en la pestaña ➕.")
@@ -558,7 +833,7 @@ def modulo_pos(cfg: dict):
                     pb = round(float(r["precio_usd"]) * tasa, 2)
                     st.markdown(
                         f'<div class="pcard">'
-                        f'<div class="e">{r["emoji"] or "🍴"}</div>'
+                        f'<span class="e">{r["emoji"] or "🍴"}</span>'
                         f'<div class="n">{r["nombre"]}</div>'
                         f'<div class="p">${float(r["precio_usd"]):.2f}</div>'
                         f'<div class="b">Bs. {pb:,.2f}</div>'
@@ -566,7 +841,7 @@ def modulo_pos(cfg: dict):
                         unsafe_allow_html=True,
                     )
                     st.button(
-                        "➕ Agregar",
+                        "Agregar",
                         key=f"add_{r['id']}",
                         on_click=cb_add,
                         args=(int(r["id"]), r["emoji"] or "",
@@ -574,8 +849,7 @@ def modulo_pos(cfg: dict):
                         use_container_width=True,
                     )
 
-    # --- Carrito ---
-    st.markdown('<div class="sec">🛒 Carrito</div>', unsafe_allow_html=True)
+    st.markdown('<div class="sec">Carrito</div>', unsafe_allow_html=True)
     car = st.session_state.carrito
     if not car:
         st.info("Carrito vacío.")
@@ -589,20 +863,20 @@ def modulo_pos(cfg: dict):
             st.markdown(
                 f'<div class="ci">'
                 f'<div class="t">{item["emoji"]} {item["nombre"]}</div>'
-                f'<div class="s">{item["qty"]}× ${item["precio"]:.2f} = '
+                f'<div class="s">{item["qty"]}× ${item["precio"]:.2f} · '
                 f'<b>${sub_usd:.2f}</b> · Bs. {sub_bs:,.2f}</div></div>',
                 unsafe_allow_html=True,
             )
         with c2:
             b1, b2 = st.columns(2, gap="small")
             with b1:
-                st.button("➖", key=f"r_{k}", on_click=cb_dec, args=(k,),
+                st.button("−", key=f"r_{k}", on_click=cb_dec, args=(k,),
                           use_container_width=True)
             with b2:
-                st.button("➕", key=f"s_{k}", on_click=cb_inc, args=(k,),
+                st.button("+", key=f"s_{k}", on_click=cb_inc, args=(k,),
                           use_container_width=True)
         with c3:
-            st.button("🗑️", key=f"d_{k}", on_click=cb_del, args=(k,),
+            st.button("✕", key=f"d_{k}", on_click=cb_del, args=(k,),
                       use_container_width=True)
 
     total_usd = carrito_total_usd()
@@ -610,17 +884,15 @@ def modulo_pos(cfg: dict):
 
     st.markdown(
         f'<div class="car-total">'
-        f'<div class="row"><span>Total USD</span><b>${total_usd:.2f}</b></div>'
-        f'<div class="row big"><span>Total Bs.</span><b>Bs. {total_bs:,.2f}</b></div>'
-        f'<div style="font-size:.6rem;opacity:.7;margin-top:3px">'
-        f'Tasa aplicada: Bs. {tasa:,.2f}</div></div>',
+        f'<div class="row"><span>Total USD</span><span>${total_usd:.2f}</span></div>'
+        f'<div class="row big"><span>Total Bs.</span><span>Bs. {total_bs:,.2f}</span></div>'
+        f'<div class="tasa-note">Tasa aplicada Bs. {tasa:,.2f}</div></div>',
         unsafe_allow_html=True,
     )
 
-    # --- Asignación de cliente ---
-    st.markdown('<div class="sec">👤 Cliente</div>', unsafe_allow_html=True)
+    st.markdown('<div class="sec">Cliente</div>', unsafe_allow_html=True)
     cdf = get_clientes()
-    opciones = {0: "🧑 Venta Anónima"}
+    opciones = {0: "🧑 Venta anónima"}
     for _, cc in cdf.iterrows():
         etq = cc["alumno"] or cc["nombre"]
         if cc["representante"]:
@@ -636,18 +908,20 @@ def modulo_pos(cfg: dict):
 
     cA, cB = st.columns(2, gap="small")
     with cA:
-        if st.button("✅ Registrar Pago", type="primary", use_container_width=True):
+        if st.button("Registrar pago", type="primary", use_container_width=True):
             _finalizar_venta("Pagado", tasa)
             st.rerun()
     with cB:
-        if st.button("🔴 Fiar", use_container_width=True):
+        st.markdown('<div class="btn-fiar">', unsafe_allow_html=True)
+        if st.button("Fiar a crédito", use_container_width=True):
             _finalizar_venta("Por cobrar", tasa)
-            st.rerun()# ============================================================
+            st.rerun()
+        st.markdown('</div>', unsafe_allow_html=True)# ============================================================
 # MÓDULO CRM
 # ============================================================
 def modulo_crm(cfg: dict):
     tasa = obtener_tasa_activa(cfg)
-    st.markdown('<div class="sec">📇 Directorio</div>', unsafe_allow_html=True)
+    st.markdown('<div class="sec">Directorio</div>', unsafe_allow_html=True)
 
     cdf = get_clientes()
     ddf = get_deudas()
@@ -673,7 +947,7 @@ def modulo_crm(cfg: dict):
                 f'<div class="t">👤 {c["alumno"] or c["nombre"]}</div>'
                 f'<div class="s">Rep: {c["representante"] or "—"} · '
                 f'📱 {c["telefono"] or "—"}</div>'
-                f'<div class="s" style="margin-top:2px">Deuda: '
+                f'<div class="s" style="margin-top:3px">Deuda: '
                 f'<b style="color:{"#e74c3c" if tiene else "#27ae60"}">'
                 f'${de["usd"]:.2f}</b> · Bs. {dbs:,.2f}</div></div>',
                 unsafe_allow_html=True,
@@ -681,7 +955,7 @@ def modulo_crm(cfg: dict):
 
             c1, c2, c3 = st.columns([2, 2, 1], gap="small")
             with c1:
-                if tiene and st.button("💰 Abonar", key=f"ab_{cid}",
+                if tiene and st.button("Abonar", key=f"ab_{cid}",
                                        use_container_width=True):
                     abonar_cliente(cid)
                     st.success("Deuda cancelada.")
@@ -696,13 +970,13 @@ def modulo_crm(cfg: dict):
                     if link:
                         st.markdown(
                             f'<a href="{link}" target="_blank" class="wa">'
-                            f'💬 WhatsApp</a>',
+                            f'Recordar por WhatsApp</a>',
                             unsafe_allow_html=True,
                         )
             with c3:
                 if tiene:
                     vk = f"vv_{cid}"
-                    if st.button("📜", key=f"v_{cid}", use_container_width=True):
+                    if st.button("···", key=f"v_{cid}", use_container_width=True):
                         st.session_state[vk] = not st.session_state.get(vk, False)
 
             if tiene and st.session_state.get(f"vv_{cid}", False):
@@ -713,18 +987,18 @@ def modulo_crm(cfg: dict):
                     s1, s2 = st.columns([5, 1], gap="small")
                     with s1:
                         st.markdown(
-                            f'<div style="font-size:.62rem;color:#555;padding:2px 4px">'
-                            f'🗓️ {v["fecha"][:16]} · ${float(v["monto_usd"]):.2f} · '
-                            f'{v["detalles"]}</div>',
+                            f'<div style="font-size:.66rem;color:#475569;padding:3px 6px">'
+                            f'{fecha_corta(v["fecha"])} · '
+                            f'${float(v["monto_usd"]):.2f} · {v["detalles"]}</div>',
                             unsafe_allow_html=True,
                         )
                     with s2:
-                        if st.button("✅", key=f"pv_{v['id']}",
+                        if st.button("✓", key=f"pv_{v['id']}",
                                      use_container_width=True):
                             abonar_venta(int(v["id"]))
                             st.rerun()
 
-    st.markdown('<div class="sec">➕ Nuevo Cliente</div>', unsafe_allow_html=True)
+    st.markdown('<div class="sec">Nuevo cliente</div>', unsafe_allow_html=True)
     with st.form("form_cliente", clear_on_submit=True):
         c1, c2 = st.columns(2, gap="small")
         with c1:
@@ -735,7 +1009,7 @@ def modulo_crm(cfg: dict):
             cat = st.selectbox("Categoría",
                                ["Alumno", "Docente", "Administrativo", "Otro"])
         nom = st.text_input("Nombre alterno (opcional)")
-        if st.form_submit_button("💾 Guardar Cliente", use_container_width=True):
+        if st.form_submit_button("Guardar cliente", use_container_width=True):
             if not al.strip():
                 st.error("El nombre del alumno es obligatorio.")
             else:
@@ -757,7 +1031,7 @@ EMOJIS = ["🍔", "🌭", "🍕", "🥟", "🍟", "🌮", "🌯", "🥪", "🍗"
 
 def modulo_productos(cfg: dict):
     tasa = obtener_tasa_activa(cfg)
-    st.markdown('<div class="sec">➕ Nuevo Producto</div>', unsafe_allow_html=True)
+    st.markdown('<div class="sec">Nuevo producto</div>', unsafe_allow_html=True)
 
     with st.form("form_prod", clear_on_submit=True):
         em = st.selectbox("Emoji", EMOJIS, index=0)
@@ -774,7 +1048,7 @@ def modulo_productos(cfg: dict):
             cat = st.text_input("Categoría", value="General")
         with c4:
             sku = st.text_input("SKU")
-        if st.form_submit_button("💾 Guardar Producto", use_container_width=True):
+        if st.form_submit_button("Guardar producto", use_container_width=True):
             if not nom.strip():
                 st.error("El nombre es obligatorio.")
             elif pr <= 0:
@@ -784,36 +1058,42 @@ def modulo_productos(cfg: dict):
                 st.success(f"'{nom.strip()}' agregado.")
                 st.rerun()
 
-    st.markdown('<div class="sec">📦 Catálogo Actual</div>', unsafe_allow_html=True)
+    st.markdown('<div class="sec">Catálogo actual</div>', unsafe_allow_html=True)
     pdf = get_productos()
     if pdf.empty:
         st.info("No hay productos registrados todavía.")
     else:
-        v = pdf.copy()
-        v["Precio Bs."] = (v["precio_usd"] * tasa).round(2)
-        v = v.rename(columns={
-            "emoji": "🎨", "nombre": "Producto", "precio_usd": "$",
-            "costo_usd": "Costo $", "categoria": "Categoría", "sku": "SKU",
-        })
-        st.dataframe(
-            v[["🎨", "Producto", "Categoría", "$", "Precio Bs.", "Costo $", "SKU"]],
-            use_container_width=True, hide_index=True,
-        )
-        st.markdown('<div class="sec">🗑️ Eliminar Producto</div>',
+        for _, r in pdf.iterrows():
+            pb = round(float(r["precio_usd"]) * tasa, 2)
+            st.markdown(
+                f'<div class="ci"><div class="row">'
+                f'<div>'
+                f'<div class="t">{r["emoji"] or "🍴"} {r["nombre"]}</div>'
+                f'<div class="s">{r["categoria"] or "General"}'
+                f'{" · " + r["sku"] if r["sku"] else ""}</div>'
+                f'</div>'
+                f'<div style="text-align:right">'
+                f'<div class="t" style="color:#f39c12">${float(r["precio_usd"]):.2f}</div>'
+                f'<div class="s">Bs. {pb:,.2f}</div>'
+                f'</div></div></div>',
+                unsafe_allow_html=True,
+            )
+
+        st.markdown('<div class="sec">Eliminar producto</div>',
                     unsafe_allow_html=True)
         opciones = {int(r["id"]): f"{r['emoji']} {r['nombre']}"
                     for _, r in pdf.iterrows()}
         pid = st.selectbox("Selecciona un producto", list(opciones.keys()),
                            format_func=lambda x: opciones[x],
                            label_visibility="collapsed")
-        if st.button("🗑️ Eliminar definitivamente", use_container_width=True):
+        if st.button("Eliminar producto", use_container_width=True):
             eliminar_producto(pid)
             st.success("Producto eliminado.")
             st.rerun()
 
 
 # ============================================================
-# MÓDULO REPORTES
+# REPORTES
 # ============================================================
 def _reporte_txt(vdf: pd.DataFrame, cfg: dict) -> str:
     t = obtener_tasa_activa(cfg)
@@ -874,7 +1154,7 @@ def modulo_reportes(cfg: dict):
     with c1:
         metric_card("Ingresos", f"${tu:,.2f}", "gold")
     with c2:
-        metric_card("Ganancia Est.", f"${gan:,.2f}", "green")
+        metric_card("Ganancia est.", f"${gan:,.2f}", "green")
     c3, c4 = st.columns(2, gap="small")
     with c3:
         metric_card("Deuda", f"${deu:,.2f}", "red")
@@ -882,28 +1162,86 @@ def modulo_reportes(cfg: dict):
         metric_card("Operaciones", f"{n}")
 
     st.markdown(
-        f'<div style="text-align:center;font-size:.62rem;color:#6c7a89;'
-        f'margin-top:2px">Facturado Bs. {tb:,.2f} · Tasa Bs. {tasa:,.2f}</div>',
+        f'<div style="text-align:center;font-size:.64rem;color:#94a3b8;'
+        f'margin-top:4px">Facturado Bs. {tb:,.2f} · Tasa Bs. {tasa:,.2f}</div>',
         unsafe_allow_html=True,
     )
 
-    st.markdown('<div class="sec">📊 Historial</div>', unsafe_allow_html=True)
+    st.markdown('<div class="sec">Historial</div>', unsafe_allow_html=True)
     if vdf.empty:
         st.info("Sin ventas registradas.")
         return
 
-    v = vdf.rename(columns={
-        "id": "ID", "fecha": "Fecha", "alumno": "Alumno",
-        "representante": "Rep", "monto_usd": "USD", "monto_bs": "Bs.",
-        "tasa_usada": "Tasa", "estado": "Estado", "detalles": "Productos",
-    })
-    st.dataframe(
-        v[["ID", "Fecha", "Alumno", "Rep", "USD", "Bs.", "Tasa",
-           "Estado", "Productos"]],
-        use_container_width=True, hide_index=True,
-    )
+    # Mostrar últimas 30 como cards HTML (limpio en móvil)
+    for _, r in vdf.head(30).iterrows():
+        pendiente = r["estado"] == "Por cobrar"
+        cls = "pend" if pendiente else "ok"
+        etiqueta = "Por cobrar" if pendiente else "Pagado"
+        alumno = r["alumno"] or r["cliente_nombre"] or "Anónimo"
+        st.markdown(
+            f'<div class="ci">'
+            f'<div class="row">'
+            f'<span class="t">#{int(r["id"])} · {alumno}</span>'
+            f'<span class="estado {cls}">{etiqueta}</span>'
+            f'</div>'
+            f'<div class="s">{fecha_corta(r["fecha"])} · '
+            f'<b>${float(r["monto_usd"]):.2f}</b> · '
+            f'Bs. {float(r["monto_bs"]):,.2f} · '
+            f'{r["detalles"]}</div>'
+            f'</div>',
+            unsafe_allow_html=True,
+        )
+    if len(vdf) > 30:
+        st.caption(f"Mostrando las últimas 30 de {len(vdf)} operaciones.")
 
-    st.markdown('<div class="sec">⬇️ Exportar</div>', unsafe_allow_html=True)
+    # ============ ELIMINAR VENTA ============
+    st.markdown('<div class="sec">Eliminar venta</div>',
+                unsafe_allow_html=True)
+    with st.expander("Eliminar una venta del historial", expanded=False):
+        opciones_v = {}
+        for _, r in vdf.iterrows():
+            etq = (f"#{int(r['id'])} · {fecha_corta(r['fecha'])} · "
+                   f"${float(r['monto_usd']):.2f} · "
+                   f"{r['alumno'] or r['cliente_nombre'] or 'Anónimo'} · "
+                   f"{r['estado']}")
+            opciones_v[int(r["id"])] = etq
+        vid = st.selectbox(
+            "Selecciona la venta a eliminar",
+            list(opciones_v.keys()),
+            format_func=lambda x: opciones_v[x],
+            key="elim_venta_sel",
+        )
+        fila = vdf[vdf["id"] == vid].iloc[0]
+        st.markdown(
+            f'<div class="ci" style="margin-top:6px">'
+            f'<div class="t">Venta #{int(fila["id"])}</div>'
+            f'<div class="s">{fila["fecha"]}</div>'
+            f'<div class="s">Cliente: {fila["alumno"] or fila["cliente_nombre"] or "Anónimo"}</div>'
+            f'<div class="s">Monto: ${float(fila["monto_usd"]):.2f} / Bs. {float(fila["monto_bs"]):,.2f}</div>'
+            f'<div class="s">Estado: {fila["estado"]}</div>'
+            f'<div class="s">Productos: {fila["detalles"]}</div></div>',
+            unsafe_allow_html=True,
+        )
+        confirmar = st.checkbox(
+            "Confirmo eliminar esta venta permanentemente",
+            key="elim_venta_conf",
+        )
+        if st.button("Eliminar esta venta",
+                     use_container_width=True,
+                     disabled=not confirmar):
+            eliminar_venta(vid)
+            st.success(f"Venta #{vid} eliminada.")
+            st.rerun()
+
+    with st.expander("⚠️ Zona peligrosa", expanded=False):
+        st.caption("Estas acciones no se pueden deshacer.")
+        if st.button("Borrar TODAS las ventas",
+                     use_container_width=True, key="wipe_ventas"):
+            eliminar_todas_ventas()
+            st.success("Historial borrado.")
+            st.rerun()
+
+    st.markdown('<div class="sec">Exportar</div>', unsafe_allow_html=True)
     buf = io.StringIO()
     w = csv.writer(buf, delimiter=";")
     w.writerow(["ID", "Fecha", "Cliente", "Alumno", "Rep", "USD",
@@ -920,21 +1258,22 @@ def modulo_reportes(cfg: dict):
     cA, cB = st.columns(2, gap="small")
     with cA:
         st.download_button(
-            "📄 CSV", buf.getvalue().encode("utf-8-sig"),
+            "Descargar CSV", buf.getvalue().encode("utf-8-sig"),
             f"ventas_{hoy}.csv", "text/csv", use_container_width=True,
         )
     with cB:
         st.download_button(
-            "📝 TXT", _reporte_txt(vdf, cfg).encode("utf-8"),
+            "Descargar TXT", _reporte_txt(vdf, cfg).encode("utf-8"),
             f"reporte_{hoy}.txt", "text/plain", use_container_width=True,
-        )
-
-
-# ============================================================
-# MÓDULO CONFIGURACIÓN
+)# ============================================================
+# CONFIGURACIÓN
 # ============================================================
 def modulo_config(cfg: dict):
-    st.markdown('<div class="sec">⚙️ Ajustes de Tasas</div>', unsafe_allow_html=True)
+    st.markdown('<div class="sec">Tasas del día</div>', unsafe_allow_html=True)
+
+    if obtener_tasa_activa(cfg) == 0:
+        st.warning("⚠️ La tasa activa está en Bs. 0.00. Configúrala antes de vender.")
+
     with st.form("form_cfg"):
         c1, c2 = st.columns(2, gap="small")
         with c1:
@@ -958,13 +1297,14 @@ def modulo_config(cfg: dict):
         idx = TIPOS_TASA.index(tipo_actual) if tipo_actual in TIPOS_TASA else 0
         ta = st.selectbox("Tasa activa del día", list(TIPOS_TASA), index=idx)
 
-        st.markdown("**Datos del negocio**")
+        st.markdown('<div class="sec">Datos del negocio</div>',
+                    unsafe_allow_html=True)
         neg = st.text_input("Nombre del negocio",
                             value=cfg.get("negocio_nombre", "Tu Cantina Express"))
         rif = st.text_input("RIF / Identificación",
                             value=cfg.get("negocio_rif", ""))
 
-        if st.form_submit_button("💾 Guardar Configuración",
+        if st.form_submit_button("Guardar configuración",
                                  type="primary", use_container_width=True):
             set_config("tasa_bcv_usd", f"{round(float(usd), 2):.2f}")
             set_config("tasa_bcv_eur", f"{round(float(eur), 2):.2f}")
@@ -976,17 +1316,15 @@ def modulo_config(cfg: dict):
             st.rerun()
 
     st.markdown(
-        f'<div style="font-size:.7rem;color:#6c7a89;margin-top:6px">'
-        f'<b>Sistema</b><br>DB: <code>cantina.db</code><br>'
-        f'Productos: {len(get_productos())} · '
-        f'Clientes: {len(get_clientes())} · '
-        f'Ventas: {len(get_ventas())}</div>',
+        f'<div style="font-size:.68rem;color:#94a3b8;margin-top:10px;'
+        f'text-align:center">Productos {len(get_productos())} · '
+        f'Clientes {len(get_clientes())} · Ventas {len(get_ventas())}</div>',
         unsafe_allow_html=True,
     )
 
 
 # ============================================================
-# INICIALIZACIÓN DE ESTADO + RESET PENDIENTE
+# ESTADO / RESET
 # ============================================================
 def init_state():
     defaults = {
@@ -1005,7 +1343,6 @@ def init_state():
 
 
 def aplicar_reset_pendiente():
-    """Aplica resets ANTES de instanciar widgets en el nuevo ciclo."""
     if st.session_state.pop("_reset_venta", False):
         st.session_state.carrito = {}
         st.session_state.cliente_sel = 0
@@ -1034,9 +1371,7 @@ def main():
     cfg = get_config()
     render_header(cfg)
 
-    t1, t2, t3, t4, t5 = st.tabs(
-        ["🛒 POS", "👥 CRM", "➕ Prod", "📊 Rep", "⚙️ Ajustes"]
-    )
+    t1, t2, t3, t4, t5 = st.tabs(["🛒", "👥", "➕", "📊", "⚙️"])
     with t1:
         modulo_pos(cfg)
     with t2:
