@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""Tu Cantina Express v8 · POS & CRM local · VET · mobile-first"""
+"""Tu Cantina Express v9 · POS & CRM local · VET · mobile-first"""
 import streamlit as st
 import sqlite3
 import pandas as pd
@@ -168,17 +168,6 @@ def inject_css():
         }
         div.stButton>button[kind="primary"]:hover{background:#229954;}
 
-        /* Botones DENTRO de columnas: compactos, solo tamaño, sin tocar layout */
-        div[data-testid="column"] div[data-testid="stButton"] > button{
-            padding:.35rem .5rem !important;
-            font-size:.95rem !important;
-            font-weight:800 !important;
-            min-height:34px !important;
-            max-height:34px !important;
-            line-height:1 !important;
-            border-radius:8px !important;
-        }
-
         .btn-fiar button{
             background:var(--card) !important;color:var(--rojo) !important;
             border:1.5px solid var(--rojo) !important;
@@ -341,6 +330,32 @@ def inject_css():
         div[role="radiogroup"] > label p{
             font-size:1.4rem !important;margin:0 !important;
             padding:0 !important;line-height:1 !important;
+        }
+
+        /* ============================================================
+           FIX MÓVIL: evitar que Streamlit apile columnas
+           Streamlit fuerza min-width ~240px en móvil → rompe layouts
+           ============================================================ */
+        @media (max-width: 700px){
+            [data-testid="stHorizontalBlock"]{
+                flex-wrap:nowrap !important;
+                gap:.25rem !important;
+            }
+            [data-testid="stHorizontalBlock"] > [data-testid="column"]{
+                min-width:0 !important;
+                width:auto !important;
+            }
+        }
+
+        /* Botones dentro de columnas: cuadrados compactos */
+        [data-testid="column"] div[data-testid="stButton"] > button{
+            padding:.25rem .2rem !important;
+            min-height:34px !important;
+            max-height:34px !important;
+            font-size:1rem !important;
+            font-weight:900 !important;
+            border-radius:8px !important;
+            line-height:1 !important;
         }
         </style>""",
         unsafe_allow_html=True,
@@ -814,16 +829,18 @@ def modulo_pos(cfg: dict):
             f'· Bs. {sub_bs:,.2f}</div></div>',
             unsafe_allow_html=True,
         )
-        c1, c2, c3 = st.columns([1, 1, 8], gap="small")
-        with c1:
+        cb1, cb2, cb3, cb4 = st.columns([1, 1, 1, 7], gap="small")
+        with cb1:
             st.button("−", key=f"r_{k}", on_click=cb_dec, args=(k,),
-                      use_container_width=False)
-        with c2:
+                      use_container_width=True)
+        with cb2:
             st.button("+", key=f"s_{k}", on_click=cb_inc, args=(k,),
-                      use_container_width=False)
-        with c3:
+                      use_container_width=True)
+        with cb3:
             st.button("✕", key=f"d_{k}", on_click=cb_del, args=(k,),
-                      use_container_width=False)
+                      use_container_width=True)
+        with cb4:
+            st.empty()
 
     total_usd = carrito_total_usd()
     total_bs = round(total_usd * tasa, 2)
