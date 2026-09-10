@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""Tu Cantina Express v10 · POS & CRM · VET · botones HTML (no se apilan)"""
+"""Tu Cantina Express v11 · POS & CRM · VET · carrito con st.radio (no pierde estado)"""
 import streamlit as st
 import sqlite3
 import pandas as pd
@@ -154,22 +154,48 @@ def inject_css():
     letter-spacing:-.3px;flex:0 0 auto;}
     .car-item-sub{font-size:.64rem;color:#94a3b8;line-height:1.3;margin-top:1px;}
 
-    /* ===== BOTONES HTML DEL CARRITO ===== */
-    .btn-row{display:flex!important;flex-direction:row!important;
-    flex-wrap:nowrap!important;gap:6px!important;margin:5px 0 8px 0!important;
-    align-items:center;width:100%;}
-    .mini-btn{display:inline-flex!important;align-items:center;
-    justify-content:center;width:46px!important;height:38px!important;
-    background:#ffffff;border:1px solid #e2e8f0;border-radius:8px;
-    color:#0f172a!important;font-size:1.1rem;font-weight:900;
-    text-decoration:none!important;box-shadow:0 1px 2px rgba(15,23,42,.04);
-    transition:all .1s ease;flex:0 0 auto!important;line-height:1;}
-    .mini-btn:hover{background:#f8fafc;border-color:#cbd5e1;
-    text-decoration:none!important;}
-    .mini-btn:active{transform:scale(.95);}
-    .mini-btn.del{color:#e74c3c!important;border-color:#fecaca;
-    margin-left:auto!important;}
-    .mini-btn.del:hover{background:#fef2f2;border-color:#e74c3c;}
+    /* ============================================================
+       CARRITO: st.radio horizontal disfrazado de 3 botones cuadrados
+       ============================================================ */
+    div[data-testid="stRadio"]{margin:4px 0 8px 0!important;}
+    div[data-testid="stRadio"] > label,
+    div[data-testid="stRadio"] div[data-testid="stWidgetLabel"]{
+        display:none!important;
+    }
+    div[data-testid="stRadio"] div[role="radiogroup"]{
+        display:flex!important;flex-direction:row!important;
+        flex-wrap:nowrap!important;gap:6px!important;
+        overflow:visible!important;background:transparent!important;
+        box-shadow:none!important;padding:0!important;margin:0!important;
+        width:auto!important;
+    }
+    div[data-testid="stRadio"] div[role="radiogroup"] > label{
+        display:inline-flex!important;align-items:center!important;
+        justify-content:center!important;flex:0 0 auto!important;
+        width:46px!important;height:38px!important;
+        padding:0!important;margin:0!important;
+        background:#ffffff!important;border:1px solid #e2e8f0!important;
+        border-radius:8px!important;cursor:pointer!important;
+        box-shadow:0 1px 2px rgba(15,23,42,.04)!important;
+        transition:all .1s ease!important;position:relative!important;
+    }
+    div[data-testid="stRadio"] div[role="radiogroup"] > label:hover{
+        background:#f8fafc!important;border-color:#cbd5e1!important;
+    }
+    div[data-testid="stRadio"] div[role="radiogroup"] > label:active{
+        transform:scale(.95)!important;
+    }
+    div[data-testid="stRadio"] div[role="radiogroup"] > label > div:first-child,
+    div[data-testid="stRadio"] div[role="radiogroup"] > label > span:first-child{
+        display:none!important;
+    }
+    div[data-testid="stRadio"] div[role="radiogroup"] > label > div:last-child,
+    div[data-testid="stRadio"] div[role="radiogroup"] > label p,
+    div[data-testid="stRadio"] div[role="radiogroup"] > label span{
+        font-size:1.1rem!important;font-weight:900!important;
+        color:#0f172a!important;margin:0!important;
+        padding:0!important;line-height:1!important;
+    }
 
     .stTabs [data-baseweb="tab-list"]{gap:0;background:transparent;padding:0;
     border-bottom:1px solid var(--linea);border-radius:0;
@@ -212,27 +238,44 @@ def inject_css():
     [data-testid="stForm"]{border:none!important;background:transparent!important;
     padding:0!important;}
 
-    div[role="radiogroup"]{display:flex!important;flex-wrap:nowrap!important;
-    overflow-x:auto!important;overflow-y:hidden!important;gap:4px!important;
-    padding:6px 4px!important;background:#fff!important;border-radius:10px!important;
-    box-shadow:0 1px 4px rgba(15,23,42,.05)!important;scrollbar-width:none;
-    -ms-overflow-style:none;margin-top:2px!important;margin-bottom:4px!important;}
-    div[role="radiogroup"]::-webkit-scrollbar{display:none;}
-    div[role="radiogroup"]>label{display:flex!important;align-items:center!important;
-    justify-content:center!important;flex:0 0 auto!important;width:42px!important;
-    height:42px!important;padding:0!important;margin:0!important;
-    background:#f8fafc!important;border:1.5px solid transparent!important;
-    border-radius:9px!important;cursor:pointer!important;
-    transition:all .12s ease!important;font-size:1.4rem!important;line-height:1!important;}
-    div[role="radiogroup"]>label:hover{background:#f1f5f9!important;
-    border-color:#cbd5e1!important;}
-    div[role="radiogroup"]>label[data-checked="true"],
-    div[role="radiogroup"]>label:has(input:checked){background:#dbeafe!important;
-    border-color:#0e3a5a!important;box-shadow:0 0 0 2px rgba(14,58,90,.15)!important;}
-    div[role="radiogroup"]>label>div:first-child{display:none!important;}
-    div[role="radiogroup"]>label>div:last-child,
-    div[role="radiogroup"]>label p{font-size:1.4rem!important;margin:0!important;
-    padding:0!important;line-height:1!important;}
+    /* Selector de emojis en cinta horizontal */
+    div[data-testid="stRadio"][key*="prod_emoji"] div[role="radiogroup"],
+    div[role="radiogroup"][aria-label="Emoji"]{
+        display:flex!important;flex-wrap:nowrap!important;
+        overflow-x:auto!important;overflow-y:hidden!important;
+        gap:4px!important;padding:6px 4px!important;
+        background:#fff!important;border-radius:10px!important;
+        box-shadow:0 1px 4px rgba(15,23,42,.05)!important;
+        scrollbar-width:none;-ms-overflow-style:none;
+        margin-top:2px!important;margin-bottom:4px!important;
+    }
+    div[role="radiogroup"][aria-label="Emoji"]::-webkit-scrollbar{display:none;}
+    div[role="radiogroup"][aria-label="Emoji"] > label{
+        display:flex!important;align-items:center!important;
+        justify-content:center!important;flex:0 0 auto!important;
+        width:42px!important;height:42px!important;
+        padding:0!important;margin:0!important;
+        background:#f8fafc!important;border:1.5px solid transparent!important;
+        border-radius:9px!important;cursor:pointer!important;
+        transition:all .12s ease!important;
+        font-size:1.4rem!important;line-height:1!important;
+    }
+    div[role="radiogroup"][aria-label="Emoji"] > label:hover{
+        background:#f1f5f9!important;border-color:#cbd5e1!important;
+    }
+    div[role="radiogroup"][aria-label="Emoji"] > label[data-checked="true"],
+    div[role="radiogroup"][aria-label="Emoji"] > label:has(input:checked){
+        background:#dbeafe!important;border-color:#0e3a5a!important;
+        box-shadow:0 0 0 2px rgba(14,58,90,.15)!important;
+    }
+    div[role="radiogroup"][aria-label="Emoji"] > label > div:first-child{
+        display:none!important;
+    }
+    div[role="radiogroup"][aria-label="Emoji"] > label > div:last-child,
+    div[role="radiogroup"][aria-label="Emoji"] > label p{
+        font-size:1.4rem!important;margin:0!important;
+        padding:0!important;line-height:1!important;
+    }
     </style>""", unsafe_allow_html=True)
 
 
@@ -520,47 +563,27 @@ def carrito_detalle_txt():
 
 
 # ============================================================
-# PROCESAR ACCIONES VÍA QUERY PARAMS (HTML <a>)
+# CALLBACK DEL RADIO DEL CARRITO
 # ============================================================
-def procesar_acciones_carrito():
-    """Lee ?acc=X&k=Y de la URL, ejecuta y limpia."""
-    try:
-        params = st.query_params
-    except Exception:
-        try:
-            params = st.experimental_get_query_params()
-        except Exception:
-            return
-
-    try:
-        acc = params.get("acc")
-        k = params.get("k")
-    except Exception:
-        return
-
-    if isinstance(acc, list):
-        acc = acc[0] if acc else None
-    if isinstance(k, list):
-        k = k[0] if k else None
-
-    if not acc or not k:
-        return
-
-    if acc == "dec":
+def handle_cart_radio(k: str):
+    """Se dispara al tocar −, + o ✕ en el radio del carrito."""
+    action = st.session_state.get(f"act_{k}")
+    if action == "−":
         cb_dec(k)
-    elif acc == "inc":
+    elif action == "+":
         cb_inc(k)
-    elif acc == "del":
+    elif action == "✕":
         cb_del(k)
+    # Marcar para resetear el radio en el próximo ciclo
+    st.session_state[f"_reset_radio_{k}"] = True
 
-    try:
-        st.query_params.clear()
-    except Exception:
-        try:
-            st.experimental_set_query_params()
-        except Exception:
-            pass
-    st.rerun()
+
+def aplicar_reset_radios():
+    """Resetea los radios del carrito a None antes de instanciarlos."""
+    carrito = st.session_state.get("carrito", {})
+    for k in list(carrito.keys()):
+        if st.session_state.pop(f"_reset_radio_{k}", False):
+            st.session_state[f"act_{k}"] = None
 
 
 # ============================================================
@@ -665,6 +688,7 @@ def modulo_pos(cfg):
                                     r["nombre"], float(r["precio_usd"])),
                               use_container_width=True)
 
+    # ========== CARRITO ==========
     st.markdown('<div class="sec">Carrito</div>', unsafe_allow_html=True)
     car = st.session_state.carrito
     if not car:
@@ -682,13 +706,16 @@ def modulo_pos(cfg):
             f'<div class="car-item-sub">{item["qty"]}× ${item["precio"]:.2f} '
             f'· Bs. {sub_bs:,.2f}</div></div>',
             unsafe_allow_html=True)
-        st.markdown(
-            f'<div class="btn-row">'
-            f'<a href="?acc=dec&k={k}" target="_self" class="mini-btn">−</a>'
-            f'<a href="?acc=inc&k={k}" target="_self" class="mini-btn">+</a>'
-            f'<a href="?acc=del&k={k}" target="_self" class="mini-btn del">✕</a>'
-            f'</div>',
-            unsafe_allow_html=True)
+        st.radio(
+            label=f"acciones_{k}",
+            options=["−", "+", "✕"],
+            index=None,
+            horizontal=True,
+            key=f"act_{k}",
+            label_visibility="collapsed",
+            on_change=handle_cart_radio,
+            args=(k,),
+        )
 
     total_usd = carrito_total_usd()
     total_bs = round(total_usd * tasa, 2)
@@ -1121,7 +1148,7 @@ def main():
     init_db()
     init_state()
     aplicar_reset_pendiente()
-    procesar_acciones_carrito()   # NUEVO: lee ?acc=X&k=Y
+    aplicar_reset_radios()        # <-- resetea radios del carrito
     cfg = get_config()
     render_header(cfg)
     t1, t2, t3, t4, t5 = st.tabs(["🛒", "👥", "➕", "📊", "⚙️"])
