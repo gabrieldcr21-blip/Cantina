@@ -546,5 +546,499 @@ def modulo_pos(cfg: dict):
                 "Cat", cats, key="cat_fil", label_visibility="collapsed",
             )
 
-    # --- Grid 2 columnas ---
-    st.markdown('<div class="sec">📦 Catálogo</div>', uns
+     # --- Grid 2 columnas ---
+    st.markdown('<div class="sec">📦 Catálogo</div>', unsafe_allow_html=True)
+
+    if pdf.empty:
+        st.info("Catálogo vacío. Agrega productos en la pestaña ➕.")
+    else:
+        df = pdf
+        q = (st.session_state.get("busqueda") or "").strip().lower()
+        if q:
+            df = df[df["nombre"].str.lower().str.contains(q, na=False, regex=False)]
+        cat = st.session_state.get("cat_fil", "Todas")
+        if cat != "Todas":
+            df = df[df["categoria"] == cat]
+
+        if df.empty:
+            st.info("Sin resultados.")
+        else:
+            cols = st.columns(2, gap="small")
+            for i, (_, r) in enumerate(df.iterrows()):
+                with cols[i % 2]:
+                    pb = round(float(r["precio_usd"]) * tasa, 2)
+                    st.markdown(
+                        f'<div class="pcard">'
+                        f'<div class="e">{r["emoji"] or "🍴"}</div>'
+                        f'<div class="n">{r["nombre"]}</div>'
+                        f'<div class="p">${float(r["precio_usd"]):.2f}</div>'
+                        f'<div class="b">Bs. {pb:,.2f}</div>'
+                        f'</div>',
+                        unsafe_allow_html=True,
+                    )
+                    st.button(
+                        "➕ Agregar",
+                        key=f"add_{r['id']}",
+                        on_click=cb_add,
+                        args=(int(r["id"]), r["emoji"] or "",
+                              r["nombre"], float(r["precio_usd"])),
+                        use_container_width=True,
+                    )
+
+    # --- Carrito ---
+    st.markdown('<div class="sec">🛒 Carrito</div>', unsafe_allow_html=True)
+    car = st.session_state.carrito
+    if not car:
+        st.info("Carrito vacío.")
+        return
+
+    for k, item in list(car.items()):
+        sub_usd = round(item["precio"] * item["qty"], 2)
+        sub_bs = round(sub_usd * tasa, 2)
+        c1, c2, c3 = st.columns([5, 3, 1], gap="small")
+        with c1:
+            st.markdown(
+                f'<div class="ci">'
+                f'<div class="t">{item["emoji"]} {item["nombre"]}</div>'
+                f'<div class="s">{item["qty"]}× ${item["precio"]:.2f} = '
+                f'<b>${sub_usd:.2f}</b> · Bs. {sub_bs:,.2f}</div></div>',
+                unsafe_allow_html=True,
+            )
+        with c2:
+            b1, b2 = st.columns(2, gap="small")
+            with b1:
+                st.button("➖", key=f"r_{k}", on_click=cb_dec, args=(k,),
+                          use_container_width=True)
+            with b2:
+                st.button("➕", key=f"s_{k}", on_click=cb_inc, args=(k,),
+                          use_container_width=True)
+        with c3:
+            st.button("🗑️", key=f"d_{k}", on_click=cb_del, args=(k,),
+                      use_container_width=True)
+
+    total_usd = carrito_total_usd()
+    total_bs = round(total_usd * tasa, 2)
+
+    st.markdown(
+        f'<div class="car-total">'
+        f'<div class="row"><span>Total USD</span><b>${total_usd:.2f}</b></div>'
+        f'<div class="row big"><span>Total Bs.</span><b>Bs. {total_bs:,.2f}</b></div>'
+        f'<div style="font-size:.6rem;opacity:.7;margin-top:3px">'
+        f'Tasa aplicada: Bs. {tasa:,.2f}</div></div>',
+        unsafe_allow_html=True,
+    )
+
+    # --- Asignación de cliente ---
+    st.markdown('<div class="sec">👤 Cliente</div>', unsafe_allow_html=True)
+    cdf = get_clientes()
+    opciones = {0: "🧑 Venta Anónima"}
+    for _, cc in cdf.iterrows():
+        etq = cc["alumno"] or cc["nombre"]
+        if cc["representante"]:
+            etq += f" · {cc['representante']}"
+        opciones[int(cc["id"])] = etq
+    ids = list(opciones.keys())
+    if st.session_state.get("cliente_sel") not in ids:
+        st.session_state.cliente_sel = 0
+    st.selectbox(
+        "Cliente", ids, format_func=lambda x: opciones[x],
+        key="cliente_sel", label_visibility="collapsed",
+    )
+
+    cA, cB = st.columns(2, gap="small")
+    with cA:
+        if st.button("✅ Registrar Pago", type="primary", use_container_width=True):
+            _finalizar_venta("Pagado", tasa)
+            st.rerun()
+    with cB:
+        if st.button("🔴 Fiar", use_container_width=True):
+            _finalizar_venta("Por cobrar", tasa)
+            st.rerun()
+
+
+# ============================================================
+# MÓDULO CRM
+# ============================================================
+def modulo_crm(cfg: dict):
+    tasa = obtener_tasa_activa(cfg)
+    st.markdown('<div class="sec">📇 Directorio</div>', unsafe_allow_html=True)
+
+    cdf = get_clientes()
+    ddf = get_deudas()
+    deuda_map = {}
+    if not ddf.empty:
+        for _, d in ddf.iterrows():
+            deuda_map[int(d["cliente_id"])] = {
+                "usd": float(d["deuda_usd"]),
+                "num": int(d["num_ventas"]),
+            }
+
+    if cdf.empty:
+        st.info("Sin clientes registrados.")
+    else:
+        for _, c in cdf.iterrows():
+            cid = int(c["id"])
+            de = deuda_map.get(cid, {"usd": 0.0, "num": 0})
+            tiene = de["usd"] > 0.005
+            dbs = round(de["usd"] * tasa, 2)
+
+            st.markdown(
+                f'<div class="ci">'
+                f'<div class="t">👤 {c["alumno"] or c["nombre"]}</div>'
+                f'<div class="s">Rep: {c["representante"] or "—"} · '
+                f'📱 {c["telefono"] or "—"}</div>'
+                f'<div class="s" style="margin-top:2px">Deuda: '
+                f'<b style="color:{"#e74c3c" if tiene else "#27ae60"}">'
+                f'${de["usd"]:.2f}</b> · Bs. {dbs:,.2f}</div></div>',
+                unsafe_allow_html=True,
+            )
+
+            c1, c2, c3 = st.columns([2, 2, 1], gap="small")
+            with c1:
+                if tiene and st.button("💰 Abonar", key=f"ab_{cid}",
+                                       use_container_width=True):
+                    abonar_cliente(cid)
+                    st.success("Deuda cancelada.")
+                    st.rerun()
+            with c2:
+                if tiene and c["telefono"]:
+                    msg = construir_mensaje_recordatorio(
+                        c["representante"], c["alumno"] or c["nombre"],
+                        de["usd"], dbs,
+                    )
+                    link = generar_enlace_whatsapp(c["telefono"], msg)
+                    if link:
+                        st.markdown(
+                            f'<a href="{link}" target="_blank" class="wa">'
+                            f'💬 WhatsApp</a>',
+                            unsafe_allow_html=True,
+                        )
+            with c3:
+                if tiene:
+                    vk = f"vv_{cid}"
+                    if st.button("📜", key=f"v_{cid}", use_container_width=True):
+                        st.session_state[vk] = not st.session_state.get(vk, False)
+
+            if tiene and st.session_state.get(f"vv_{cid}", False):
+                vdf = get_ventas()
+                pend = vdf[(vdf["cliente_id"] == cid)
+                           & (vdf["estado"] == "Por cobrar")]
+                for _, v in pend.iterrows():
+                    s1, s2 = st.columns([5, 1], gap="small")
+                    with s1:
+                        st.markdown(
+                            f'<div style="font-size:.62rem;color:#555;padding:2px 4px">'
+                            f'🗓️ {v["fecha"][:16]} · ${float(v["monto_usd"]):.2f} · '
+                            f'{v["detalles"]}</div>',
+                            unsafe_allow_html=True,
+                        )
+                    with s2:
+                        if st.button("✅", key=f"pv_{v['id']}",
+                                     use_container_width=True):
+                            abonar_venta(int(v["id"]))
+                            st.rerun()
+
+    st.markdown('<div class="sec">➕ Nuevo Cliente</div>', unsafe_allow_html=True)
+    with st.form("form_cliente", clear_on_submit=True):
+        c1, c2 = st.columns(2, gap="small")
+        with c1:
+            al = st.text_input("Alumno *")
+            rep = st.text_input("Representante")
+        with c2:
+            tel = st.text_input("Teléfono")
+            cat = st.selectbox("Categoría",
+                               ["Alumno", "Docente", "Administrativo", "Otro"])
+        nom = st.text_input("Nombre alterno (opcional)")
+        if st.form_submit_button("💾 Guardar Cliente", use_container_width=True):
+            if not al.strip():
+                st.error("El nombre del alumno es obligatorio.")
+            else:
+                add_cliente(nom.strip() or al.strip(), al.strip(),
+                            rep.strip(), tel.strip(), cat)
+                st.success("Cliente agregado.")
+                st.rerun()
+
+
+# ============================================================
+# MÓDULO PRODUCTOS
+# ============================================================
+EMOJIS = ["🍔", "🌭", "🍕", "🥟", "🍟", "🌮", "🌯", "🥪", "🍗", "🍖",
+          "🥗", "🍝", "🍜", "🍲", "🍛", "🍱", "🥘", "🥤", "💧", "🧃",
+          "☕", "🍵", "🧋", "🍺", "🥛", "🍹", "🍰", "🍪", "🍫", "🍩",
+          "🍦", "🧁", "🍮", "🥧", "🍎", "🍌", "🍓", "🍊", "🍇", "🥭",
+          "🍉", "🍴", "🥄", "🧂", "🍿", "🥨", "🥐", "🍳", "🥞", "🧇"]
+
+
+def modulo_productos(cfg: dict):
+    tasa = obtener_tasa_activa(cfg)
+    st.markdown('<div class="sec">➕ Nuevo Producto</div>', unsafe_allow_html=True)
+
+    with st.form("form_prod", clear_on_submit=True):
+        em = st.selectbox("Emoji", EMOJIS, index=0)
+        nom = st.text_input("Nombre *")
+        c1, c2 = st.columns(2, gap="small")
+        with c1:
+            pr = st.number_input("Precio $ *", min_value=0.0, step=0.10,
+                                 format="%.2f")
+        with c2:
+            co = st.number_input("Costo $", min_value=0.0, step=0.10,
+                                 format="%.2f")
+        c3, c4 = st.columns(2, gap="small")
+        with c3:
+            cat = st.text_input("Categoría", value="General")
+        with c4:
+            sku = st.text_input("SKU")
+        if st.form_submit_button("💾 Guardar Producto", use_container_width=True):
+            if not nom.strip():
+                st.error("El nombre es obligatorio.")
+            elif pr <= 0:
+                st.error("El precio debe ser mayor a 0.")
+            else:
+                add_producto(em, nom, pr, co, cat, sku)
+                st.success(f"'{nom.strip()}' agregado.")
+                st.rerun()
+
+    st.markdown('<div class="sec">📦 Catálogo Actual</div>', unsafe_allow_html=True)
+    pdf = get_productos()
+    if pdf.empty:
+        st.info("No hay productos registrados todavía.")
+    else:
+        v = pdf.copy()
+        v["Precio Bs."] = (v["precio_usd"] * tasa).round(2)
+        v = v.rename(columns={
+            "emoji": "🎨", "nombre": "Producto", "precio_usd": "$",
+            "costo_usd": "Costo $", "categoria": "Categoría", "sku": "SKU",
+        })
+        st.dataframe(
+            v[["🎨", "Producto", "Categoría", "$", "Precio Bs.", "Costo $", "SKU"]],
+            use_container_width=True, hide_index=True,
+        )
+        st.markdown('<div class="sec">🗑️ Eliminar Producto</div>',
+                    unsafe_allow_html=True)
+        opciones = {int(r["id"]): f"{r['emoji']} {r['nombre']}"
+                    for _, r in pdf.iterrows()}
+        pid = st.selectbox("Selecciona un producto", list(opciones.keys()),
+                           format_func=lambda x: opciones[x],
+                           label_visibility="collapsed")
+        if st.button("🗑️ Eliminar definitivamente", use_container_width=True):
+            eliminar_producto(pid)
+            st.success("Producto eliminado.")
+            st.rerun()
+
+
+# ============================================================
+# MÓDULO REPORTES
+# ============================================================
+def _reporte_txt(vdf: pd.DataFrame, cfg: dict) -> str:
+    t = obtener_tasa_activa(cfg)
+    L = ["=" * 62,
+         "      TU CANTINA EXPRESS · REPORTE DE OPERACIONES",
+         "=" * 62,
+         f"Generado : {datetime.now().strftime('%d/%m/%Y %H:%M:%S')}",
+         f"Tasa     : Bs. {t:,.2f} por USD ({cfg.get('tasa_activa_tipo','')})",
+         f"Negocio  : {cfg.get('negocio_nombre','')}",
+         "-" * 62, ""]
+    if vdf.empty:
+        L.append("Sin operaciones registradas.")
+        return "\n".join(L)
+
+    tot_usd = round(float(vdf["monto_usd"].sum()), 2)
+    tot_bs = round(float(vdf["monto_bs"].sum()), 2)
+    pag = vdf[vdf["estado"] == "Pagado"]
+    pc = vdf[vdf["estado"] == "Por cobrar"]
+    L += [f"Operaciones      : {len(vdf)}",
+          f"Total facturado  : ${tot_usd:,.2f} / Bs. {tot_bs:,.2f}",
+          f"Cobrado          : ${round(float(pag['monto_usd'].sum()),2):,.2f}",
+          f"Por cobrar       : ${round(float(pc['monto_usd'].sum()),2):,.2f}",
+          "", "-" * 62, "DETALLE DE OPERACIONES", "-" * 62]
+    for _, v in vdf.sort_values("id").iterrows():
+        L += ["",
+              f"#{v['id']} · {v['fecha']}",
+              f"  Tasa usada    : Bs. {float(v['tasa_usada']):,.2f}",
+              f"  Cliente       : {v['cliente_nombre'] or 'Anónimo'}",
+              f"  Alumno        : {v['alumno'] or '—'}",
+              f"  Representante : {v['representante'] or '—'}",
+              f"  Monto USD     : ${float(v['monto_usd']):,.2f}",
+              f"  Monto Bs.     : Bs. {float(v['monto_bs']):,.2f}",
+              f"  Estado        : {v['estado']}",
+              f"  Productos     : {v['detalles']}"]
+    L += ["", "=" * 62, "Fin del reporte.", "=" * 62]
+    return "\n".join(L)
+
+
+def modulo_reportes(cfg: dict):
+    tasa = obtener_tasa_activa(cfg)
+    vdf = get_ventas()
+    pdf = get_productos()
+
+    tu = round(float(vdf["monto_usd"].sum()), 2) if not vdf.empty else 0.0
+    tb = round(float(vdf["monto_bs"].sum()), 2) if not vdf.empty else 0.0
+    deu = (round(float(vdf.loc[vdf["estado"] == "Por cobrar", "monto_usd"].sum()), 2)
+           if not vdf.empty else 0.0)
+    n = len(vdf)
+
+    if not pdf.empty and tu > 0:
+        m = ((pdf["precio_usd"] - pdf["costo_usd"]) / pdf["precio_usd"])
+        m = m.replace([float("inf"), -float("inf")], 0).fillna(0).mean()
+        gan = round(tu * float(m), 2)
+    else:
+        gan = 0.0
+
+    c1, c2 = st.columns(2, gap="small")
+    with c1:
+        metric_card("Ingresos", f"${tu:,.2f}", "gold")
+    with c2:
+        metric_card("Ganancia Est.", f"${gan:,.2f}", "green")
+    c3, c4 = st.columns(2, gap="small")
+    with c3:
+        metric_card("Deuda", f"${deu:,.2f}", "red")
+    with c4:
+        metric_card("Operaciones", f"{n}")
+
+    st.markdown(
+        f'<div style="text-align:center;font-size:.62rem;color:#6c7a89;'
+        f'margin-top:2px">Facturado Bs. {tb:,.2f} · Tasa Bs. {tasa:,.2f}</div>',
+        unsafe_allow_html=True,
+    )
+
+    st.markdown('<div class="sec">📊 Historial</div>', unsafe_allow_html=True)
+    if vdf.empty:
+        st.info("Sin ventas registradas.")
+        return
+
+    v = vdf.rename(columns={
+        "id": "ID", "fecha": "Fecha", "alumno": "Alumno",
+        "representante": "Rep", "monto_usd": "USD", "monto_bs": "Bs.",
+        "tasa_usada": "Tasa", "estado": "Estado", "detalles": "Productos",
+    })
+    st.dataframe(
+        v[["ID", "Fecha", "Alumno", "Rep", "USD", "Bs.", "Tasa",
+           "Estado", "Productos"]],
+        use_container_width=True, hide_index=True,
+    )
+
+    st.markdown('<div class="sec">⬇️ Exportar</div>', unsafe_allow_html=True)
+    buf = io.StringIO()
+    w = csv.writer(buf, delimiter=";")
+    w.writerow(["ID", "Fecha", "Cliente", "Alumno", "Rep", "USD",
+                "Bs", "Tasa", "Estado", "Detalles"])
+    for _, r in vdf.iterrows():
+        w.writerow([
+            r["id"], r["fecha"], r["cliente_nombre"], r["alumno"],
+            r["representante"], f"{float(r['monto_usd']):.2f}",
+            f"{float(r['monto_bs']):.2f}", f"{float(r['tasa_usada']):.2f}",
+            r["estado"], r["detalles"],
+        ])
+
+    hoy = datetime.now().strftime("%Y%m%d_%H%M")
+    cA, cB = st.columns(2, gap="small")
+    with cA:
+        st.download_button(
+            "📄 CSV", buf.getvalue().encode("utf-8-sig"),
+            f"ventas_{hoy}.csv", "text/csv", use_container_width=True,
+        )
+    with cB:
+        st.download_button(
+            "📝 TXT", _reporte_txt(vdf, cfg).encode("utf-8"),
+            f"reporte_{hoy}.txt", "text/plain", use_container_width=True,
+        )
+
+
+# ============================================================
+# MÓDULO CONFIGURACIÓN
+# ============================================================
+def modulo_config(cfg: dict):
+    st.markdown('<div class="sec">⚙️ Ajustes de Tasas</div>', unsafe_allow_html=True)
+    with st.form("form_cfg"):
+        c1, c2 = st.columns(2, gap="small")
+        with c1:
+            usd = st.number_input(
+                "BCV USD (Bs/USD)", min_value=0.0,
+                value=float(cfg.get("tasa_bcv_usd", 0) or 0),
+                step=0.10, format="%.2f",
+            )
+        with c2:
+            eur = st.number_input(
+                "BCV EUR (Bs/EUR)", min_value=0.0,
+                value=float(cfg.get("tasa_bcv_eur", 0) or 0),
+                step=0.10, format="%.2f",
+            )
+        per = st.number_input(
+            "Personalizada (Bs/USD)", min_value=0.0,
+            value=float(cfg.get("tasa_personalizada", 0) or 0),
+            step=0.10, format="%.2f",
+        )
+        tipo_actual = cfg.get("tasa_activa_tipo", "BCV USD")
+        idx = TIPOS_TASA.index(tipo_actual) if tipo_actual in TIPOS_TASA else 0
+        ta = st.selectbox("Tasa activa del día", list(TIPOS_TASA), index=idx)
+
+        st.markdown("**Datos del negocio**")
+        neg = st.text_input("Nombre del negocio",
+                            value=cfg.get("negocio_nombre", "Tu Cantina Express"))
+        rif = st.text_input("RIF / Identificación",
+                            value=cfg.get("negocio_rif", ""))
+
+        if st.form_submit_button("💾 Guardar Configuración",
+                                 type="primary", use_container_width=True):
+            set_config("tasa_bcv_usd", f"{round(float(usd), 2):.2f}")
+            set_config("tasa_bcv_eur", f"{round(float(eur), 2):.2f}")
+            set_config("tasa_personalizada", f"{round(float(per), 2):.2f}")
+            set_config("tasa_activa_tipo", ta)
+            set_config("negocio_nombre", neg.strip())
+            set_config("negocio_rif", rif.strip())
+            st.success("Configuración guardada.")
+            st.rerun()
+
+    st.markdown(
+        f'<div style="font-size:.7rem;color:#6c7a89;margin-top:6px">'
+        f'<b>Sistema</b><br>DB: <code>cantina.db</code><br>'
+        f'Productos: {len(get_productos())} · '
+        f'Clientes: {len(get_clientes())} · '
+        f'Ventas: {len(get_ventas())}</div>',
+        unsafe_allow_html=True,
+    )
+
+
+# ============================================================
+# INICIALIZACIÓN DE ESTADO
+# ============================================================
+def init_state():
+    defaults = {
+        "carrito": {},
+        "busqueda": "",
+        "cat_fil": "Todas",
+        "cliente_sel": 0,
+    }
+    for k, v in defaults.items():
+        if k not in st.session_state:
+            st.session_state[k] = v
+
+
+# ============================================================
+# MAIN
+# ============================================================
+def main():
+    inject_css()
+    init_db()
+    init_state()
+
+    cfg = get_config()
+    render_header(cfg)
+
+    t1, t2, t3, t4, t5 = st.tabs(
+        ["🛒 POS", "👥 CRM", "➕ Prod", "📊 Rep", "⚙️ Ajustes"]
+    )
+    with t1:
+        modulo_pos(cfg)
+    with t2:
+        modulo_crm(cfg)
+    with t3:
+        modulo_productos(cfg)
+    with t4:
+        modulo_reportes(cfg)
+    with t5:
+        modulo_config(cfg)
+
+
+if __name__ == "__main__":
+    main()
