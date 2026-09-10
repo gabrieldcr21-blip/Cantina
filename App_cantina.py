@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """
-Tu Cantina Express v6
-POS & CRM local · mobile-first · VET (UTC-4) · UI compacta · emoji strip · UTF-8.
+Tu Cantina Express v7
+POS & CRM local · mobile-first · VET (UTC-4) · carrito en fila única.
 """
 import streamlit as st
 import sqlite3
@@ -63,24 +63,29 @@ def inject_css():
         }
         * {font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;}
 
-        .main .block-container{padding:.4rem .6rem 4rem .6rem;max-width:520px;margin:auto;}
+        .main .block-container{padding:.4rem .55rem 4rem .55rem;max-width:520px;margin:auto;}
         .stApp{background:var(--fondo);}
 
-        /* Compactar */
-        [data-testid="stVerticalBlock"]{gap:.25rem !important;}
-        [data-testid="stHorizontalBlock"]{gap:.25rem !important;}
+        /* Compactación */
+        [data-testid="stVerticalBlock"]{gap:.22rem !important;}
+        [data-testid="stHorizontalBlock"]{
+            gap:.22rem !important;
+            flex-wrap:nowrap !important;
+            align-items:center !important;
+        }
+        [data-testid="column"]{min-width:0 !important;flex-shrink:1 !important;}
         .element-container{margin-bottom:0 !important;}
         hr{display:none;}
-        [data-testid="stForm"] > [data-testid="stVerticalBlock"]{gap:.3rem !important;}
+        [data-testid="stForm"] > [data-testid="stVerticalBlock"]{gap:.28rem !important;}
 
         /* Labels e inputs */
-        .stTextInput label, .stNumberInput label, .stSelectbox label,
-        .stTextArea label, .stMultiSelect label, .stRadio label,
-        .stCheckbox label, .stSlider label, .stFileUploader label,
+        .stTextInput label,.stNumberInput label,.stSelectbox label,
+        .stTextArea label,.stMultiSelect label,.stRadio label,
+        .stCheckbox label,.stSlider label,
         div[data-testid="stWidgetLabel"] label,
         div[data-testid="stWidgetLabel"] p{
             color:var(--tx) !important;font-weight:600 !important;
-            font-size:.74rem !important;opacity:1 !important;
+            font-size:.72rem !important;opacity:1 !important;
         }
         .stTextInput input,.stNumberInput input,.stTextArea textarea{
             background:var(--card) !important;color:var(--tx) !important;
@@ -138,36 +143,62 @@ def inject_css():
             background:var(--card);border-radius:10px;
             padding:6px 4px 5px;text-align:center;
             box-shadow:var(--sombra);margin-bottom:2px;
+            position:relative;
         }
         .pcard .e{font-size:1.3rem;line-height:1;display:block;}
         .pcard .n{font-size:.68rem;font-weight:700;color:var(--tx);
                   margin-top:3px;line-height:1.1;
-                  display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;
-                  overflow:hidden;min-height:1.3em;}
+                  display:-webkit-box;-webkit-line-clamp:2;
+                  -webkit-box-orient:vertical;overflow:hidden;
+                  min-height:1.3em;}
         .pcard .p{font-size:.82rem;font-weight:900;color:var(--ambar);
                   margin-top:3px;letter-spacing:-.2px;}
         .pcard .b{font-size:.58rem;color:var(--tx-3);margin-top:1px;}
+        .pcard .badge{
+            position:absolute;top:4px;right:4px;
+            background:#0e3a5a;color:#fff;font-size:.58rem;
+            font-weight:800;border-radius:20px;
+            padding:1px 6px;min-width:16px;text-align:center;line-height:1.2;
+        }
 
         /* Botones */
         div.stButton>button{
             width:100%;border-radius:9px;font-weight:700;
             border:1px solid var(--linea);background:var(--card);
             color:var(--tx);padding:.3rem .25rem;font-size:.74rem;
-            line-height:1;min-height:28px;
+            line-height:1;min-height:30px;
             box-shadow:0 1px 2px rgba(15,23,42,.04);
             transition:all .1s ease;
         }
         div.stButton>button:hover{border-color:#cbd5e1;background:#f8fafc;}
-        div.stButton>button:active{transform:scale(.98);}
+        div.stButton>button:active{transform:scale(.97);}
         div.stButton>button[kind="primary"]{
             background:var(--verde);color:#fff;border:none;
             box-shadow:0 3px 8px rgba(39,174,96,.22);
+            min-height:36px;font-size:.8rem;padding:.4rem .3rem;
         }
         div.stButton>button[kind="primary"]:hover{background:#229954;}
+
+        /* Botones − + ✕ del carrito: cuadrados compactos */
         [data-testid="column"] .stButton > button{
-            padding:.2rem 0 !important;min-height:26px !important;
-            font-size:.85rem !important;line-height:1 !important;
+            padding:0 !important;
+            min-height:32px !important;
+            max-height:32px !important;
+            font-size:.95rem !important;
+            font-weight:800 !important;
+            border-radius:8px !important;
+            line-height:1 !important;
+            display:flex !important;
+            align-items:center !important;
+            justify-content:center !important;
         }
+        [data-testid="column"] .stButton > button[kind="primary"]{
+            min-height:36px !important;
+            max-height:36px !important;
+            font-size:.82rem !important;
+            padding:.35rem .3rem !important;
+        }
+
         .btn-fiar button{
             background:var(--card) !important;color:var(--rojo) !important;
             border:1.5px solid var(--rojo) !important;
@@ -190,7 +221,7 @@ def inject_css():
         .mc .v{font-size:.92rem;font-weight:900;color:var(--tx);
                margin-top:2px;letter-spacing:-.2px;}
 
-        /* Items */
+        /* Items genéricos */
         .ci{
             background:var(--card);border-radius:10px;padding:6px 9px;
             margin-bottom:3px;box-shadow:var(--sombra-sm);
@@ -201,6 +232,15 @@ def inject_css():
         .ci .estado{font-size:.64rem;font-weight:800;}
         .ci .estado.ok{color:var(--verde);}
         .ci .estado.pend{color:var(--rojo);}
+
+        /* Carrito: caja visual del ítem */
+        .car-item-box{
+            background:#ffffff;border-radius:10px 10px 0 0;
+            padding:6px 10px 3px;margin-top:5px;
+            box-shadow:0 1px 4px rgba(15,23,42,.05);
+        }
+        .car-item-name{font-size:.8rem;font-weight:800;color:#0f172a;line-height:1.2;}
+        .car-item-sub{font-size:.64rem;color:#94a3b8;line-height:1.3;margin-top:1px;}
 
         /* Tabs */
         .stTabs [data-baseweb="tab-list"]{
@@ -272,58 +312,42 @@ def inject_css():
             padding:0 !important;
         }
 
-        /* ============================================================
-           SELECTOR DE EMOJIS: cinta horizontal con scroll
-           ============================================================ */
+        /* Selector de emojis en cinta horizontal */
         div[role="radiogroup"]{
-            display:flex !important;
-            flex-wrap:nowrap !important;
-            overflow-x:auto !important;
-            overflow-y:hidden !important;
-            gap:4px !important;
-            padding:6px 4px !important;
-            background:#fff !important;
-            border-radius:10px !important;
+            display:flex !important;flex-wrap:nowrap !important;
+            overflow-x:auto !important;overflow-y:hidden !important;
+            gap:4px !important;padding:6px 4px !important;
+            background:#fff !important;border-radius:10px !important;
             box-shadow:0 1px 4px rgba(15,23,42,.05) !important;
-            scrollbar-width:none;
-            -ms-overflow-style:none;
+            scrollbar-width:none;-ms-overflow-style:none;
             -webkit-overflow-scrolling:touch;
-            margin-top:2px !important;
-            margin-bottom:4px !important;
+            margin-top:2px !important;margin-bottom:4px !important;
         }
         div[role="radiogroup"]::-webkit-scrollbar{display:none;}
         div[role="radiogroup"] > label{
-            display:flex !important;
-            align-items:center !important;
-            justify-content:center !important;
-            flex:0 0 auto !important;
-            width:42px !important;
-            height:42px !important;
-            padding:0 !important;
-            margin:0 !important;
+            display:flex !important;align-items:center !important;
+            justify-content:center !important;flex:0 0 auto !important;
+            width:42px !important;height:42px !important;
+            padding:0 !important;margin:0 !important;
             background:#f8fafc !important;
             border:1.5px solid transparent !important;
-            border-radius:9px !important;
-            cursor:pointer !important;
+            border-radius:9px !important;cursor:pointer !important;
             transition:all .12s ease !important;
-            font-size:1.4rem !important;
-            line-height:1 !important;
+            font-size:1.4rem !important;line-height:1 !important;
         }
         div[role="radiogroup"] > label:hover{
-            background:#f1f5f9 !important;
-            border-color:#cbd5e1 !important;
+            background:#f1f5f9 !important;border-color:#cbd5e1 !important;
         }
         div[role="radiogroup"] > label[data-checked="true"],
         div[role="radiogroup"] > label:has(input:checked){
-            background:#dbeafe !important;
-            border-color:#0e3a5a !important;
+            background:#dbeafe !important;border-color:#0e3a5a !important;
             box-shadow:0 0 0 2px rgba(14,58,90,.15) !important;
         }
         div[role="radiogroup"] > label > div:first-child{display:none !important;}
         div[role="radiogroup"] > label > div:last-child,
         div[role="radiogroup"] > label p{
-            font-size:1.4rem !important;
-            margin:0 !important;padding:0 !important;line-height:1 !important;
+            font-size:1.4rem !important;margin:0 !important;
+            padding:0 !important;line-height:1 !important;
         }
         </style>""",
         unsafe_allow_html=True,
@@ -613,18 +637,13 @@ def generar_enlace_whatsapp(telefono: str, mensaje: str) -> str:
     return f"https://wa.me/{t}?text={urllib.parse.quote(mensaje)}"
 
 
-# ============================================================
-# NUEVO MENSAJE DE WHATSAPP
-# ============================================================
 def construir_mensaje_recordatorio(representante, alumno,
                                    monto_usd, monto_bs) -> str:
-    """
-    Mensaje corporativo de la cantina del Santa María.
-    Incluye saludo, nombre del representado, monto USD, monto Bs. y agradecimiento.
-    """
     alu = (alumno or "").strip() or "su representado"
-    usd_txt = f"{round(float(monto_usd), 2):,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
-    bs_txt = f"{round(float(monto_bs), 2):,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
+    usd_txt = f"{round(float(monto_usd), 2):,.2f}".replace(
+        ",", "X").replace(".", ",").replace("X", ".")
+    bs_txt = f"{round(float(monto_bs), 2):,.2f}".replace(
+        ",", "X").replace(".", ",").replace("X", ".")
     return (
         "Hola! Muy buenos días. Le saludamos de parte de la cantina del Santa María. "
         f"Su representado {alu} tiene un saldo pendiente de "
@@ -799,8 +818,15 @@ def modulo_pos(cfg: dict):
             for i, (_, r) in enumerate(df.iterrows()):
                 with cols[i % 2]:
                     pb = round(float(r["precio_usd"]) * tasa, 2)
+                    k = _car_key(int(r["id"]))
+                    qty_car = st.session_state.carrito.get(k, {}).get("qty", 0)
+                    badge = (
+                        f'<span class="badge">{qty_car}</span>'
+                        if qty_car > 0 else ""
+                    )
                     st.markdown(
                         f'<div class="pcard">'
+                        f'{badge}'
                         f'<span class="e">{r["emoji"] or "🍴"}</span>'
                         f'<div class="n">{r["nombre"]}</div>'
                         f'<div class="p">${float(r["precio_usd"]):.2f}</div>'
@@ -817,6 +843,9 @@ def modulo_pos(cfg: dict):
                         use_container_width=True,
                     )
 
+    # ============================================================
+    # CARRITO — botones − + ✕ en una sola fila
+    # ============================================================
     st.markdown('<div class="sec">Carrito</div>', unsafe_allow_html=True)
     car = st.session_state.carrito
     if not car:
@@ -826,26 +855,35 @@ def modulo_pos(cfg: dict):
     for k, item in list(car.items()):
         sub_usd = round(item["precio"] * item["qty"], 2)
         sub_bs = round(sub_usd * tasa, 2)
-        c1, c2 = st.columns([5, 3], gap="small")
-        with c1:
+
+        st.markdown(
+            f'<div class="car-item-box">'
+            f'<div class="car-item-name">{item["emoji"]} {item["nombre"]}</div>'
+            f'<div class="car-item-sub">{item["qty"]}× ${item["precio"]:.2f} = '
+            f'<b>${sub_usd:.2f}</b> · Bs. {sub_bs:,.2f}</div>'
+            f'</div>',
+            unsafe_allow_html=True,
+        )
+
+        col_m, col_p, col_x, col_sub = st.columns(
+            [1, 1, 1, 3], gap="small"
+        )
+        with col_m:
+            st.button("−", key=f"r_{k}", on_click=cb_dec, args=(k,),
+                      use_container_width=True)
+        with col_p:
+            st.button("+", key=f"s_{k}", on_click=cb_inc, args=(k,),
+                      use_container_width=True)
+        with col_x:
+            st.button("✕", key=f"d_{k}", on_click=cb_del, args=(k,),
+                      use_container_width=True)
+        with col_sub:
             st.markdown(
-                f'<div class="ci">'
-                f'<div class="t">{item["emoji"]} {item["nombre"]}</div>'
-                f'<div class="s">{item["qty"]}× ${item["precio"]:.2f} · '
-                f'<b>${sub_usd:.2f}</b> · Bs. {sub_bs:,.2f}</div></div>',
+                f'<div style="text-align:right;font-size:.9rem;'
+                f'font-weight:900;color:#0e3a5a;padding-top:6px">'
+                f'${sub_usd:.2f}</div>',
                 unsafe_allow_html=True,
             )
-        with c2:
-            b1, b2, b3 = st.columns(3, gap="small")
-            with b1:
-                st.button("−", key=f"r_{k}", on_click=cb_dec, args=(k,),
-                          use_container_width=True)
-            with b2:
-                st.button("+", key=f"s_{k}", on_click=cb_inc, args=(k,),
-                          use_container_width=True)
-            with b3:
-                st.button("✕", key=f"d_{k}", on_click=cb_del, args=(k,),
-                          use_container_width=True)
 
     total_usd = carrito_total_usd()
     total_bs = round(total_usd * tasa, 2)
@@ -884,10 +922,7 @@ def modulo_pos(cfg: dict):
         if st.button("Fiar a crédito", use_container_width=True):
             _finalizar_venta("Por cobrar", tasa)
             st.rerun()
-        st.markdown('</div>', unsafe_allow_html=True)
-
-
-# ============================================================
+        st.markdown('</div>', unsafe_allow_html=True# ============================================================
 # CRM
 # ============================================================
 def modulo_crm(cfg: dict):
@@ -958,7 +993,8 @@ def modulo_crm(cfg: dict):
                     s1, s2 = st.columns([5, 1], gap="small")
                     with s1:
                         st.markdown(
-                            f'<div style="font-size:.62rem;color:#475569;padding:2px 5px">'
+                            f'<div style="font-size:.62rem;color:#475569;'
+                            f'padding:2px 5px">'
                             f'{fecha_corta(v["fecha"])} · '
                             f'${float(v["monto_usd"]):.2f} · {v["detalles"]}</div>',
                             unsafe_allow_html=True,
@@ -991,7 +1027,7 @@ def modulo_crm(cfg: dict):
 
 
 # ============================================================
-# PRODUCTOS (con selector de emojis en cinta horizontal)
+# PRODUCTOS
 # ============================================================
 EMOJIS = [
     "🍔","🌭","🍕","🥟","🍟","🌮","🌯","🥪","🍗","🍖","🥗","🍝",
@@ -1053,7 +1089,8 @@ def modulo_productos(cfg: dict):
                 f'{" · " + r["sku"] if r["sku"] else ""}</div>'
                 f'</div>'
                 f'<div style="text-align:right">'
-                f'<div class="t" style="color:#f39c12">${float(r["precio_usd"]):.2f}</div>'
+                f'<div class="t" style="color:#f39c12">'
+                f'${float(r["precio_usd"]):.2f}</div>'
                 f'<div class="s">Bs. {pb:,.2f}</div>'
                 f'</div></div></div>',
                 unsafe_allow_html=True,
@@ -1194,8 +1231,10 @@ def modulo_reportes(cfg: dict):
             f'<div class="ci" style="margin-top:6px">'
             f'<div class="t">Venta #{int(fila["id"])}</div>'
             f'<div class="s">{fila["fecha"]}</div>'
-            f'<div class="s">Cliente: {fila["alumno"] or fila["cliente_nombre"] or "Anónimo"}</div>'
-            f'<div class="s">Monto: ${float(fila["monto_usd"]):.2f} / Bs. {float(fila["monto_bs"]):,.2f}</div>'
+            f'<div class="s">Cliente: '
+            f'{fila["alumno"] or fila["cliente_nombre"] or "Anónimo"}</div>'
+            f'<div class="s">Monto: ${float(fila["monto_usd"]):.2f} / '
+            f'Bs. {float(fila["monto_bs"]):,.2f}</div>'
             f'<div class="s">Estado: {fila["estado"]}</div>'
             f'<div class="s">Productos: {fila["detalles"]}</div></div>',
             unsafe_allow_html=True,
@@ -1239,16 +1278,14 @@ def modulo_reportes(cfg: dict):
     cA, cB = st.columns(2, gap="small")
     with cA:
         st.download_button(
-            "Descargar CSV",
-            data=csv_bytes,
+            "Descargar CSV", data=csv_bytes,
             file_name=f"ventas_{hoy}.csv",
             mime="text/csv; charset=utf-8",
             use_container_width=True,
         )
     with cB:
         st.download_button(
-            "Descargar TXT",
-            data=txt_bytes,
+            "Descargar TXT", data=txt_bytes,
             file_name=f"reporte_{hoy}.txt",
             mime="text/plain; charset=utf-8",
             use_container_width=True,
@@ -1262,7 +1299,8 @@ def modulo_config(cfg: dict):
     st.markdown('<div class="sec">Tasas del día</div>', unsafe_allow_html=True)
 
     if obtener_tasa_activa(cfg) == 0:
-        st.warning("⚠️ La tasa activa está en Bs. 0.00. Configúrala antes de vender.")
+        st.warning("⚠️ La tasa activa está en Bs. 0.00. "
+                   "Configúrala antes de vender.")
 
     with st.form("form_cfg"):
         c1, c2 = st.columns(2, gap="small")
