@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """
-Tu Cantina Express v5
-POS & CRM local, mobile-first, VET (UTC-4), UI compacta, emoji grid, UTF-8.
+Tu Cantina Express v6
+POS & CRM local · mobile-first · VET (UTC-4) · UI compacta · emoji strip · UTF-8.
 """
 import streamlit as st
 import sqlite3
@@ -15,7 +15,7 @@ from contextlib import contextmanager
 from datetime import datetime, timezone, timedelta
 
 # ============================================================
-# ZONA HORARIA VENEZUELA (UTC-4) — Streamlit Cloud ignora TZ Secrets
+# ZONA HORARIA VENEZUELA (UTC-4)
 # ============================================================
 VET = timezone(timedelta(hours=-4))
 os.environ['TZ'] = 'America/Caracas'
@@ -27,12 +27,11 @@ except Exception:
 
 
 def ahora_ve() -> datetime:
-    """Fecha/hora actual en Venezuela (UTC-4)."""
     return datetime.now(VET)
 
 
 # ============================================================
-# CONFIGURACIÓN GLOBAL
+# CONFIG GLOBAL
 # ============================================================
 st.set_page_config(
     page_title="Tu Cantina Express",
@@ -46,7 +45,7 @@ TIPOS_TASA = ("BCV USD", "BCV EUR", "Personalizada")
 
 
 # ============================================================
-# CSS COMPACTO v5
+# CSS
 # ============================================================
 def inject_css():
     st.markdown(
@@ -67,14 +66,14 @@ def inject_css():
         .main .block-container{padding:.4rem .6rem 4rem .6rem;max-width:520px;margin:auto;}
         .stApp{background:var(--fondo);}
 
-        /* ===== COMPACTACIÓN GLOBAL ===== */
+        /* Compactar */
         [data-testid="stVerticalBlock"]{gap:.25rem !important;}
         [data-testid="stHorizontalBlock"]{gap:.25rem !important;}
         .element-container{margin-bottom:0 !important;}
         hr{display:none;}
         [data-testid="stForm"] > [data-testid="stVerticalBlock"]{gap:.3rem !important;}
 
-        /* ===== LABELS E INPUTS ===== */
+        /* Labels e inputs */
         .stTextInput label, .stNumberInput label, .stSelectbox label,
         .stTextArea label, .stMultiSelect label, .stRadio label,
         .stCheckbox label, .stSlider label, .stFileUploader label,
@@ -110,7 +109,7 @@ def inject_css():
         }
         ul[data-baseweb="menu"] li:hover{background:#f1f5f9 !important;}
 
-        /* ===== HEADER ===== */
+        /* Header */
         .hdr{
             background:linear-gradient(135deg,var(--azul),var(--azul-2));
             color:#fff;padding:10px 13px;border-radius:14px;
@@ -127,33 +126,29 @@ def inject_css():
         .hdr-alt{margin-top:4px;font-size:.62rem;opacity:.65;}
         .hdr-alt .dot{margin:0 6px;opacity:.4;}
 
-        /* ===== SECCIONES ===== */
+        /* Secciones */
         .sec{
             font-size:.62rem;font-weight:800;color:var(--tx-3);
             letter-spacing:.6px;text-transform:uppercase;
             margin:7px 0 3px;padding:0;border:none;
         }
 
-        /* ===== TARJETA PRODUCTO COMPACTA ===== */
+        /* Tarjeta producto */
         .pcard{
             background:var(--card);border-radius:10px;
             padding:6px 4px 5px;text-align:center;
             box-shadow:var(--sombra);margin-bottom:2px;
         }
         .pcard .e{font-size:1.3rem;line-height:1;display:block;}
-        .pcard .n{
-            font-size:.68rem;font-weight:700;color:var(--tx);
-            margin-top:3px;line-height:1.1;
-            display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;
-            overflow:hidden;min-height:1.3em;
-        }
-        .pcard .p{
-            font-size:.82rem;font-weight:900;color:var(--ambar);
-            margin-top:3px;letter-spacing:-.2px;
-        }
+        .pcard .n{font-size:.68rem;font-weight:700;color:var(--tx);
+                  margin-top:3px;line-height:1.1;
+                  display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;
+                  overflow:hidden;min-height:1.3em;}
+        .pcard .p{font-size:.82rem;font-weight:900;color:var(--ambar);
+                  margin-top:3px;letter-spacing:-.2px;}
         .pcard .b{font-size:.58rem;color:var(--tx-3);margin-top:1px;}
 
-        /* ===== BOTONES ===== */
+        /* Botones */
         div.stButton>button{
             width:100%;border-radius:9px;font-weight:700;
             border:1px solid var(--linea);background:var(--card);
@@ -169,20 +164,17 @@ def inject_css():
             box-shadow:0 3px 8px rgba(39,174,96,.22);
         }
         div.stButton>button[kind="primary"]:hover{background:#229954;}
-
-        /* Botones +/-/x más chicos (solo en columnas de carrito) */
         [data-testid="column"] .stButton > button{
             padding:.2rem 0 !important;min-height:26px !important;
             font-size:.85rem !important;line-height:1 !important;
         }
-
         .btn-fiar button{
             background:var(--card) !important;color:var(--rojo) !important;
             border:1.5px solid var(--rojo) !important;
         }
         .btn-fiar button:hover{background:#fef2f2 !important;}
 
-        /* ===== MÉTRICAS ===== */
+        /* Métricas */
         .mc{
             background:var(--card);border-radius:10px;padding:7px 6px;
             text-align:center;box-shadow:var(--sombra);margin-bottom:3px;
@@ -198,7 +190,7 @@ def inject_css():
         .mc .v{font-size:.92rem;font-weight:900;color:var(--tx);
                margin-top:2px;letter-spacing:-.2px;}
 
-        /* ===== ITEMS ===== */
+        /* Items */
         .ci{
             background:var(--card);border-radius:10px;padding:6px 9px;
             margin-bottom:3px;box-shadow:var(--sombra-sm);
@@ -210,7 +202,7 @@ def inject_css():
         .ci .estado.ok{color:var(--verde);}
         .ci .estado.pend{color:var(--rojo);}
 
-        /* ===== TABS ===== */
+        /* Tabs */
         .stTabs [data-baseweb="tab-list"]{
             gap:0;background:transparent;padding:0;
             border-bottom:1px solid var(--linea);border-radius:0;
@@ -236,7 +228,7 @@ def inject_css():
         .stTabs [data-baseweb="tab-highlight"]{display:none;}
         .stTabs [data-baseweb="tab-border"]{display:none;}
 
-        /* ===== ALERTS ===== */
+        /* Alerts */
         div[data-testid="stAlert"]{
             background:#eff6ff !important;color:var(--tx) !important;
             border-radius:9px !important;border-left:3px solid var(--azul) !important;
@@ -245,7 +237,7 @@ def inject_css():
         div[data-testid="stAlert"] *{color:var(--tx) !important;font-size:.7rem !important;}
         div[data-testid="stAlert"] svg{display:none;}
 
-        /* ===== WHATSAPP ===== */
+        /* WhatsApp */
         .wa{
             display:block;text-align:center;background:#25D366;color:#fff !important;
             padding:6px 5px;border-radius:9px;font-weight:700;
@@ -253,7 +245,7 @@ def inject_css():
             box-shadow:0 2px 6px rgba(37,211,102,.25);
         }
 
-        /* ===== CARRITO TOTAL ===== */
+        /* Carrito total */
         .car-total{
             background:linear-gradient(135deg,var(--azul),var(--azul-2));
             color:#fff;border-radius:12px;padding:9px 13px;margin-top:5px;
@@ -266,7 +258,7 @@ def inject_css():
         .car-total .tasa-note{font-size:.56rem;opacity:.6;margin-top:4px;
                               text-transform:uppercase;letter-spacing:.4px;}
 
-        /* ===== EXPANDER ===== */
+        /* Expander */
         details > summary{
             list-style:none;padding:6px 10px !important;
             font-size:.76rem;font-weight:700;color:var(--tx);
@@ -274,51 +266,64 @@ def inject_css():
             box-shadow:var(--sombra-sm);
         }
 
-        /* ============================================================
-           🆕 GRID DE EMOJIS — selector tipo teclado del teléfono
-           ============================================================ */
-        /* Contenedor de emoji picker: fuerza grid 6 columnas */
-        .emoji-grid{
-            display:grid;
-            grid-template-columns:repeat(6,1fr);
-            gap:4px;
-            padding:6px;
-            background:var(--card);
-            border-radius:10px;
-            box-shadow:var(--sombra-sm);
-            max-height:220px;
-            overflow-y:auto;
-            margin-bottom:6px;
-        }
-        .emoji-grid button,
-        .emoji-btn{
-            aspect-ratio:1;
-            border-radius:8px;
-            border:1px solid transparent;
-            background:transparent;
-            font-size:1.15rem;
-            cursor:pointer;
-            transition:all .1s ease;
-            padding:0;
-            line-height:1;
-            display:flex;align-items:center;justify-content:center;
-        }
-        .emoji-btn:hover{background:#f1f5f9;border-color:var(--linea);}
-        .emoji-btn.sel{background:#dbeafe;border-color:var(--azul);}
-
-        /* Fallback: selectbox de emojis en grid */
-        div[data-testid="stSelectbox"]:has(label:contains("Emoji")) ul{
-            display:grid !important;
-            grid-template-columns:repeat(6,1fr);
-        }
-
-        /* ===== FORM ===== */
+        /* Form */
         [data-testid="stForm"]{
             border:none !important;background:transparent !important;
             padding:0 !important;
         }
-        [data-testid="stForm"] label,[data-testid="stForm"] p{
-            color:var(--tx) !important;font-weight:700 !important;
+
+        /* ============================================================
+           SELECTOR DE EMOJIS: cinta horizontal con scroll
+           ============================================================ */
+        div[role="radiogroup"]{
+            display:flex !important;
+            flex-wrap:nowrap !important;
+            overflow-x:auto !important;
+            overflow-y:hidden !important;
+            gap:4px !important;
+            padding:6px 4px !important;
+            background:#fff !important;
+            border-radius:10px !important;
+            box-shadow:0 1px 4px rgba(15,23,42,.05) !important;
+            scrollbar-width:none;
+            -ms-overflow-style:none;
+            -webkit-overflow-scrolling:touch;
+            margin-top:2px !important;
+            margin-bottom:4px !important;
+        }
+        div[role="radiogroup"]::-webkit-scrollbar{display:none;}
+        div[role="radiogroup"] > label{
+            display:flex !important;
+            align-items:center !important;
+            justify-content:center !important;
+            flex:0 0 auto !important;
+            width:42px !important;
+            height:42px !important;
+            padding:0 !important;
+            margin:0 !important;
+            background:#f8fafc !important;
+            border:1.5px solid transparent !important;
+            border-radius:9px !important;
+            cursor:pointer !important;
+            transition:all .12s ease !important;
+            font-size:1.4rem !important;
+            line-height:1 !important;
+        }
+        div[role="radiogroup"] > label:hover{
+            background:#f1f5f9 !important;
+            border-color:#cbd5e1 !important;
+        }
+        div[role="radiogroup"] > label[data-checked="true"],
+        div[role="radiogroup"] > label:has(input:checked){
+            background:#dbeafe !important;
+            border-color:#0e3a5a !important;
+            box-shadow:0 0 0 2px rgba(14,58,90,.15) !important;
+        }
+        div[role="radiogroup"] > label > div:first-child{display:none !important;}
+        div[role="radiogroup"] > label > div:last-child,
+        div[role="radiogroup"] > label p{
+            font-size:1.4rem !important;
+            margin:0 !important;padding:0 !important;line-height:1 !important;
         }
         </style>""",
         unsafe_allow_html=True,
@@ -400,7 +405,10 @@ def init_db():
         cur.executemany(
             "INSERT OR IGNORE INTO configuracion(llave,valor) VALUES(?,?)",
             list(defaults.items()),
-        )# ============================================================
+        )
+
+
+# ============================================================
 # CRUD
 # ============================================================
 @st.cache_data(ttl=3, show_spinner=False)
@@ -605,16 +613,23 @@ def generar_enlace_whatsapp(telefono: str, mensaje: str) -> str:
     return f"https://wa.me/{t}?text={urllib.parse.quote(mensaje)}"
 
 
+# ============================================================
+# NUEVO MENSAJE DE WHATSAPP
+# ============================================================
 def construir_mensaje_recordatorio(representante, alumno,
                                    monto_usd, monto_bs) -> str:
-    rep = (representante or "").strip() or "Representante"
+    """
+    Mensaje corporativo de la cantina del Santa María.
+    Incluye saludo, nombre del representado, monto USD, monto Bs. y agradecimiento.
+    """
     alu = (alumno or "").strip() or "su representado"
+    usd_txt = f"{round(float(monto_usd), 2):,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
+    bs_txt = f"{round(float(monto_bs), 2):,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
     return (
-        f"Hola {rep}, le saludamos de Tu Cantina Express. "
-        f"Le recordamos el saldo pendiente del día de su representado {alu}: "
-        f"${round(float(monto_usd), 2):,.2f} USD "
-        f"(equivalente a Bs. {round(float(monto_bs), 2):,.2f} a la tasa de hoy). "
-        f"¡Muchas gracias!"
+        "Hola! Muy buenos días. Le saludamos de parte de la cantina del Santa María. "
+        f"Su representado {alu} tiene un saldo pendiente de "
+        f"${usd_txt} equivalente a Bs. {bs_txt} a la tasa de hoy. "
+        "¡Muchas gracias!"
     )
 
 
@@ -660,9 +675,6 @@ def cb_del(k: str):
     st.session_state.carrito.pop(k, None)
 
 
-# ============================================================
-# HELPERS CARRITO
-# ============================================================
 def carrito_total_usd() -> float:
     return round(
         sum(v["precio"] * v["qty"] for v in st.session_state.carrito.values()),
@@ -712,7 +724,7 @@ def metric_card(label: str, value: str, variante: str = ""):
 
 
 # ============================================================
-# POS: FINALIZAR VENTA
+# POS
 # ============================================================
 def _finalizar_venta(estado: str, tasa: float):
     car = st.session_state.carrito
@@ -748,9 +760,6 @@ def _finalizar_venta(estado: str, tasa: float):
     st.session_state["_venta_estado"] = estado
 
 
-# ============================================================
-# MÓDULO POS
-# ============================================================
 def modulo_pos(cfg: dict):
     tasa = obtener_tasa_activa(cfg)
     pdf = get_productos()
@@ -875,8 +884,11 @@ def modulo_pos(cfg: dict):
         if st.button("Fiar a crédito", use_container_width=True):
             _finalizar_venta("Por cobrar", tasa)
             st.rerun()
-        st.markdown('</div>', unsafe_allow_html=True)# ============================================================
-# MÓDULO CRM
+        st.markdown('</div>', unsafe_allow_html=True)
+
+
+# ============================================================
+# CRM
 # ============================================================
 def modulo_crm(cfg: dict):
     tasa = obtener_tasa_activa(cfg)
@@ -979,7 +991,7 @@ def modulo_crm(cfg: dict):
 
 
 # ============================================================
-# MÓDULO PRODUCTOS (con selector de emojis en grid)
+# PRODUCTOS (con selector de emojis en cinta horizontal)
 # ============================================================
 EMOJIS = [
     "🍔","🌭","🍕","🥟","🍟","🌮","🌯","🥪","🍗","🍖","🥗","🍝",
@@ -990,60 +1002,18 @@ EMOJIS = [
 ]
 
 
-def selector_emojis(key_prefix: str = "emoji_sel") -> str:
-    """
-    Selector de emojis en cuadrícula táctil tipo teclado del teléfono.
-    Usa session_state para mantener el emoji seleccionado.
-    """
-    state_key = f"{key_prefix}_actual"
-    if state_key not in st.session_state:
-        st.session_state[state_key] = EMOJIS[0]
-
-    # Preview del emoji elegido
-    st.markdown(
-        f'<div style="display:flex;align-items:center;gap:10px;'
-        f'background:#fff;padding:6px 10px;border-radius:9px;'
-        f'box-shadow:0 1px 4px rgba(15,23,42,.05);margin-bottom:4px">'
-        f'<span style="font-size:1.5rem">{st.session_state[state_key]}</span>'
-        f'<span style="font-size:.72rem;color:#94a3b8">'
-        f'Emoji seleccionado</span></div>',
-        unsafe_allow_html=True,
-    )
-
-    # Grid de emojis: filas de 6
-    with st.container():
-        filas = [EMOJIS[i:i+6] for i in range(0, len(EMOJIS), 6)]
-        for idx_fila, fila in enumerate(filas):
-            cols = st.columns(6, gap="small")
-            for idx_col, em in enumerate(fila):
-                with cols[idx_col]:
-                    sel = "✓" if st.session_state[state_key] == em else ""
-                    if st.button(
-                        em,
-                        key=f"{key_prefix}_btn_{idx_fila}_{idx_col}",
-                        use_container_width=True,
-                        help=sel or None,
-                    ):
-                        st.session_state[state_key] = em
-                        st.rerun()
-
-    return st.session_state[state_key]
-
-
 def modulo_productos(cfg: dict):
     tasa = obtener_tasa_activa(cfg)
     st.markdown('<div class="sec">Nuevo producto</div>', unsafe_allow_html=True)
 
     with st.form("form_prod", clear_on_submit=False):
-        # Selector de emojis (fuera del form real, ver nota abajo)
-        st.markdown(
-            '<div style="font-size:.74rem;font-weight:600;color:#0f172a;'
-            'margin-bottom:4px">Emoji</div>',
-            unsafe_allow_html=True,
+        em = st.radio(
+            "Emoji",
+            EMOJIS,
+            horizontal=True,
+            key="prod_emoji",
+            label_visibility="visible",
         )
-        # Nota: st.form no permite widgets interactivos dentro, así que el
-        # selector se maneja fuera del form.
-        emoji_sel = st.session_state.get("emoji_sel_actual", EMOJIS[0])
 
         nom = st.text_input("Nombre *")
         c1, c2 = st.columns(2, gap="small")
@@ -1064,17 +1034,9 @@ def modulo_productos(cfg: dict):
             elif pr <= 0:
                 st.error("El precio debe ser mayor a 0.")
             else:
-                add_producto(emoji_sel, nom, pr, co, cat, sku)
+                add_producto(em, nom, pr, co, cat, sku)
                 st.success(f"'{nom.strip()}' agregado.")
                 st.rerun()
-
-    # Selector de emojis FUERA del form (porque st.form bloquea st.button)
-    st.markdown(
-        '<div style="font-size:.74rem;font-weight:600;color:#0f172a;'
-        'margin:8px 0 4px">Emoji seleccionado</div>',
-        unsafe_allow_html=True,
-    )
-    selector_emojis("emoji_sel")
 
     st.markdown('<div class="sec">Catálogo actual</div>', unsafe_allow_html=True)
     pdf = get_productos()
@@ -1111,13 +1073,9 @@ def modulo_productos(cfg: dict):
 
 
 # ============================================================
-# REPORTES (UTF-8 correcto para TXT y CSV)
+# REPORTES
 # ============================================================
 def _reporte_txt(vdf: pd.DataFrame, cfg: dict) -> str:
-    """
-    Reporte TXT con codificación UTF-8 (para que se lean tildes y ñ).
-    Se devuelve como str y al descargar se codifica con .encode('utf-8').
-    """
     t = obtener_tasa_activa(cfg)
     L = ["=" * 62,
          "      TU CANTINA EXPRESS · REPORTE DE OPERACIONES",
@@ -1261,10 +1219,8 @@ def modulo_reportes(cfg: dict):
             st.success("Historial borrado.")
             st.rerun()
 
-    # ============ EXPORTAR CON UTF-8 CORRECTO ============
     st.markdown('<div class="sec">Exportar</div>', unsafe_allow_html=True)
 
-    # CSV con UTF-8-SIG (con BOM) para que Excel lea tildes y ñ correctamente
     buf = io.StringIO()
     w = csv.writer(buf, delimiter=";")
     w.writerow(["ID", "Fecha", "Cliente", "Alumno", "Representante",
@@ -1277,10 +1233,7 @@ def modulo_reportes(cfg: dict):
             r["estado"], r["detalles"],
         ])
     csv_bytes = buf.getvalue().encode("utf-8-sig")
-
-    # TXT con UTF-8 explícito (sin BOM para que sea legible en cualquier editor)
-    txt_str = _reporte_txt(vdf, cfg)
-    txt_bytes = txt_str.encode("utf-8")
+    txt_bytes = _reporte_txt(vdf, cfg).encode("utf-8")
 
     hoy = ahora_ve().strftime("%Y%m%d_%H%M")
     cA, cB = st.columns(2, gap="small")
@@ -1299,7 +1252,10 @@ def modulo_reportes(cfg: dict):
             file_name=f"reporte_{hoy}.txt",
             mime="text/plain; charset=utf-8",
             use_container_width=True,
-    )# ============================================================
+        )
+
+
+# ============================================================
 # CONFIGURACIÓN
 # ============================================================
 def modulo_config(cfg: dict):
@@ -1371,7 +1327,7 @@ def init_state():
         "_reset_cliente": False,
         "_venta_msg": None,
         "_venta_estado": None,
-        "emoji_sel_actual": EMOJIS[0] if 'EMOJIS' in globals() else "🍔",
+        "prod_emoji": EMOJIS[0],
     }
     for k, v in defaults.items():
         if k not in st.session_state:
