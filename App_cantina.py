@@ -922,7 +922,8 @@ def modulo_pos(cfg: dict):
         if st.button("Fiar a crédito", use_container_width=True):
             _finalizar_venta("Por cobrar", tasa)
             st.rerun()
-        st.markdown('</div>', unsafe_allow_html=True) # ============================================================
+        st.markdown('</div>', unsafe_allow_html=True) 
+        # ============================================================
 # CRM
 # ============================================================
 def modulo_crm(cfg: dict):
