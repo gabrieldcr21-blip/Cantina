@@ -1,4 +1,3 @@
-
 # -*- coding: utf-8 -*-
 """
 Tu Cantina Express - POS & CRM Local
@@ -39,7 +38,6 @@ def inject_css():
         .stApp{background:#f6f8fa;}
         * {font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;}
 
-        /* Header */
         .hdr{background:linear-gradient(135deg,#0e3a5a,#14496f);color:#fff;
              padding:9px 12px;border-radius:12px;box-shadow:0 3px 8px rgba(14,58,90,.28);
              margin-bottom:8px;}
@@ -50,11 +48,9 @@ def inject_css():
               font-size:.6rem;font-weight:800;margin-right:4px;margin-top:4px;}
         .pill.g{background:rgba(39,174,96,.2);color:#27ae60;border-color:rgba(39,174,96,.5);}
 
-        /* Secciones */
         .sec{font-size:.76rem;font-weight:800;color:#0e3a5a;margin:6px 0 4px;
              border-left:3px solid #f39c12;padding-left:6px;}
 
-        /* Tarjeta de producto (2 columnas) */
         .pcard{background:#fff;border-radius:10px;padding:6px 4px 5px;text-align:center;
                box-shadow:0 1px 4px rgba(0,0,0,.07);border:1px solid #e8ecf1;
                margin-bottom:3px;position:relative;overflow:hidden;}
@@ -66,7 +62,6 @@ def inject_css():
         .pcard .p{font-size:.74rem;font-weight:900;color:#f39c12;margin-top:2px;}
         .pcard .b{font-size:.6rem;color:#7a8794;}
 
-        /* Botones compactos */
         div.stButton>button{
             width:100%;border-radius:8px;font-weight:800;border:none;
             padding:.32rem .2rem;font-size:.76rem;line-height:1;min-height:0;
@@ -74,7 +69,6 @@ def inject_css():
         div.stButton>button[kind="primary"]{background:#f39c12;color:#fff;}
         div.stButton>button[kind="primary"]:hover{background:#d68910;color:#fff;}
 
-        /* Métricas */
         .mc{background:#fff;border-radius:10px;padding:7px 5px;text-align:center;
             box-shadow:0 1px 4px rgba(0,0,0,.06);border-left:3px solid #0e3a5a;
             margin-bottom:4px;}
@@ -84,31 +78,26 @@ def inject_css():
         .mc.green{border-left-color:#27ae60;}
         .mc.red{border-left-color:#e74c3c;}
 
-        /* Items del carrito y CRM */
         .ci{background:#fff;border-radius:9px;padding:5px 8px;margin-bottom:4px;
             box-shadow:0 1px 3px rgba(0,0,0,.05);border:1px solid #eef1f4;}
         .ci .t{font-size:.76rem;font-weight:800;color:#0e3a5a;}
         .ci .s{font-size:.64rem;color:#6c7a89;line-height:1.25;}
 
-        /* Tabs */
         .stTabs [data-baseweb="tab-list"]{gap:2px;background:#eef1f4;padding:2px;border-radius:9px;}
         .stTabs [data-baseweb="tab"]{border-radius:7px;font-weight:800;font-size:.7rem;
                                      padding:4px 6px;color:#0e3a5a;min-height:0;}
         .stTabs [aria-selected="true"]{background:#0e3a5a!important;color:#fff!important;}
         .stTabs [data-baseweb="tab-highlight"]{display:none;}
 
-        /* Inputs compactos */
         .stTextInput input,.stNumberInput input,
         .stSelectbox div[data-baseweb="select"]>div{
             border-radius:8px!important;font-size:.82rem!important;
         }
 
-        /* WhatsApp link */
         .wa{display:block;text-align:center;background:#25D366;color:#fff!important;
             padding:5px 4px;border-radius:8px;font-weight:800;text-decoration:none;
             font-size:.68rem;line-height:1.1;}
 
-        /* Carrito: integrado con botones */
         .car-total{background:#0e3a5a;color:#fff;border-radius:11px;
                    padding:9px 12px;margin-top:5px;box-shadow:0 3px 9px rgba(14,58,90,.25);}
         .car-total .row{display:flex;justify-content:space-between;font-size:.82rem;}
@@ -351,11 +340,7 @@ def eliminar_producto(pid: int) -> None:
 # UTILIDADES
 # ============================================================
 def sanitizar_telefono(tel: str, con_prefijo: bool = True) -> str:
-    """
-    Limpia teléfono eliminando espacios, guiones, paréntesis, +.
-    Si con_prefijo=True, devuelve formato internacional VE (58XXXXXXXXXX).
-    Si con_prefijo=False, devuelve solo dígitos sin ceros iniciales (para guardar).
-    """
+    """Limpia teléfono. con_prefijo=True -> formato 58XXXXXXXXXX para wa.me"""
     if tel is None:
         return ""
     d = "".join(ch for ch in str(tel) if ch.isdigit())
@@ -403,11 +388,8 @@ def construir_mensaje_recordatorio(representante, alumno,
         f"${round(float(monto_usd), 2):,.2f} USD "
         f"(equivalente a Bs. {round(float(monto_bs), 2):,.2f} a la tasa de hoy). "
         f"¡Muchas gracias!"
-    )
-
-
-# ============================================================
-# CALLBACKS DEL CARRITO (rápidos, sin rerun manual)
+        )# ============================================================
+# CALLBACKS DEL CARRITO
 # ============================================================
 def _car_key(pid) -> str:
     return f"p{int(pid)}"
@@ -443,7 +425,7 @@ def cb_del(k: str):
 
 def cb_clear():
     st.session_state.carrito = {}
-    st.session_state.cliente_sel = 0
+    st.session_state["_reset_cliente"] = True
 
 
 # ============================================================
@@ -493,13 +475,14 @@ def metric_card(label: str, value: str, variante: str = ""):
 
 
 # ============================================================
-# MÓDULO POS
+# POS: FINALIZAR VENTA (sin tocar widgets ya instanciados)
 # ============================================================
 def _finalizar_venta(estado: str, tasa: float):
     car = st.session_state.carrito
     if not car:
         st.warning("El carrito está vacío.")
         return
+
     total_usd = carrito_total_usd()
     total_bs = round(total_usd * tasa, 2)
     cid = int(st.session_state.get("cliente_sel", 0) or 0)
@@ -520,12 +503,18 @@ def _finalizar_venta(estado: str, tasa: float):
     registrar_venta(cid, cn, al, rep, total_usd, total_bs,
                     tasa, estado, carrito_detalle_txt())
 
-    st.session_state.carrito = {}
-    st.session_state.cliente_sel = 0
-    msg = f"{'✅ PAGADO' if estado == 'Pagado' else '🔴 FIADO'}: ${total_usd:.2f} / Bs. {total_bs:,.2f}"
-    (st.success if estado == "Pagado" else st.warning)(msg)
+    # Banderas de reset (NO tocar st.session_state.carrito ni cliente_sel aquí)
+    st.session_state["_reset_venta"] = True
+    st.session_state["_venta_msg"] = (
+        f"{'✅ PAGADO' if estado == 'Pagado' else '🔴 FIADO'}: "
+        f"${total_usd:.2f} / Bs. {total_bs:,.2f}"
+    )
+    st.session_state["_venta_estado"] = estado
 
 
+# ============================================================
+# MÓDULO POS
+# ============================================================
 def modulo_pos(cfg: dict):
     tasa = obtener_tasa_activa(cfg)
     pdf = get_productos()
@@ -533,7 +522,7 @@ def modulo_pos(cfg: dict):
     # --- Filtros ---
     if not pdf.empty:
         cats = ["Todas"] + sorted(pdf["categoria"].dropna().unique().tolist())
-        c1, c2 = st.columns([3, 2])
+        c1, c2 = st.columns([3, 2], gap="small")
         with c1:
             st.text_input(
                 "🔍", key="busqueda", placeholder="Buscar producto...",
@@ -546,7 +535,7 @@ def modulo_pos(cfg: dict):
                 "Cat", cats, key="cat_fil", label_visibility="collapsed",
             )
 
-     # --- Grid 2 columnas ---
+    # --- Grid 2 columnas ---
     st.markdown('<div class="sec">📦 Catálogo</div>', unsafe_allow_html=True)
 
     if pdf.empty:
@@ -653,10 +642,7 @@ def modulo_pos(cfg: dict):
     with cB:
         if st.button("🔴 Fiar", use_container_width=True):
             _finalizar_venta("Por cobrar", tasa)
-            st.rerun()
-
-
-# ============================================================
+            st.rerun()# ============================================================
 # MÓDULO CRM
 # ============================================================
 def modulo_crm(cfg: dict):
@@ -1000,7 +986,7 @@ def modulo_config(cfg: dict):
 
 
 # ============================================================
-# INICIALIZACIÓN DE ESTADO
+# INICIALIZACIÓN DE ESTADO + RESET PENDIENTE
 # ============================================================
 def init_state():
     defaults = {
@@ -1008,10 +994,32 @@ def init_state():
         "busqueda": "",
         "cat_fil": "Todas",
         "cliente_sel": 0,
+        "_reset_venta": False,
+        "_reset_cliente": False,
+        "_venta_msg": None,
+        "_venta_estado": None,
     }
     for k, v in defaults.items():
         if k not in st.session_state:
             st.session_state[k] = v
+
+
+def aplicar_reset_pendiente():
+    """Aplica resets ANTES de instanciar widgets en el nuevo ciclo."""
+    if st.session_state.pop("_reset_venta", False):
+        st.session_state.carrito = {}
+        st.session_state.cliente_sel = 0
+
+    if st.session_state.pop("_reset_cliente", False):
+        st.session_state.cliente_sel = 0
+
+    msg = st.session_state.pop("_venta_msg", None)
+    est = st.session_state.pop("_venta_estado", None)
+    if msg and est:
+        if est == "Pagado":
+            st.success(msg)
+        else:
+            st.warning(msg)
 
 
 # ============================================================
@@ -1021,6 +1029,7 @@ def main():
     inject_css()
     init_db()
     init_state()
+    aplicar_reset_pendiente()
 
     cfg = get_config()
     render_header(cfg)
