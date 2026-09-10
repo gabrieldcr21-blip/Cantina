@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """
-Tu Cantina Express v4
-POS & CRM local, mobile-first, tema claro forzado, UI/UX pulida.
+Tu Cantina Express v5
+POS & CRM local, mobile-first, VET (UTC-4), UI compacta, emoji grid, UTF-8.
 """
 import streamlit as st
 import sqlite3
@@ -9,9 +9,27 @@ import pandas as pd
 import urllib.parse
 import io
 import csv
-from datetime import datetime
+import os
 from pathlib import Path
 from contextlib import contextmanager
+from datetime import datetime, timezone, timedelta
+
+# ============================================================
+# ZONA HORARIA VENEZUELA (UTC-4) — Streamlit Cloud ignora TZ Secrets
+# ============================================================
+VET = timezone(timedelta(hours=-4))
+os.environ['TZ'] = 'America/Caracas'
+try:
+    import time as _time
+    _time.tzset()
+except Exception:
+    pass
+
+
+def ahora_ve() -> datetime:
+    """Fecha/hora actual en Venezuela (UTC-4)."""
+    return datetime.now(VET)
+
 
 # ============================================================
 # CONFIGURACIÓN GLOBAL
@@ -28,44 +46,33 @@ TIPOS_TASA = ("BCV USD", "BCV EUR", "Personalizada")
 
 
 # ============================================================
-# CSS PULIDO — SIN BORDES, CON JERARQUÍA, ESPACIADO 8PX
+# CSS COMPACTO v5
 # ============================================================
 def inject_css():
     st.markdown(
         """<style>
-        /* ===== Reset / ocultar ===== */
         #MainMenu,footer,header,.stDeployButton,[data-testid="stToolbar"],
         [data-testid="stStatusWidget"],[data-testid="stDecoration"]{display:none!important;}
 
         :root{
-            --azul:#0e3a5a;
-            --azul-2:#14496f;
-            --ambar:#f39c12;
-            --verde:#27ae60;
-            --rojo:#e74c3c;
-            --tx:#0f172a;
-            --tx-2:#475569;
-            --tx-3:#94a3b8;
-            --fondo:#f6f8fa;
-            --card:#ffffff;
-            --linea:#e2e8f0;
+            --azul:#0e3a5a;--azul-2:#14496f;
+            --ambar:#f39c12;--verde:#27ae60;--rojo:#e74c3c;
+            --tx:#0f172a;--tx-2:#475569;--tx-3:#94a3b8;
+            --fondo:#f6f8fa;--card:#fff;--linea:#e2e8f0;
             --sombra:0 2px 6px rgba(15,23,42,.06);
             --sombra-sm:0 1px 4px rgba(15,23,42,.05);
         }
-
         * {font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;}
 
-        .main .block-container{
-            padding:.5rem .7rem 5rem .7rem;
-            max-width:520px;
-            margin:auto;
-        }
+        .main .block-container{padding:.4rem .6rem 4rem .6rem;max-width:520px;margin:auto;}
         .stApp{background:var(--fondo);}
 
-        /* Reducir gaps verticales */
-        [data-testid="stVerticalBlock"] > [data-testid="stVerticalBlock"]{gap:.45rem;}
+        /* ===== COMPACTACIÓN GLOBAL ===== */
+        [data-testid="stVerticalBlock"]{gap:.25rem !important;}
+        [data-testid="stHorizontalBlock"]{gap:.25rem !important;}
         .element-container{margin-bottom:0 !important;}
         hr{display:none;}
+        [data-testid="stForm"] > [data-testid="stVerticalBlock"]{gap:.3rem !important;}
 
         /* ===== LABELS E INPUTS ===== */
         .stTextInput label, .stNumberInput label, .stSelectbox label,
@@ -73,206 +80,152 @@ def inject_css():
         .stCheckbox label, .stSlider label, .stFileUploader label,
         div[data-testid="stWidgetLabel"] label,
         div[data-testid="stWidgetLabel"] p{
-            color:var(--tx) !important;
-            font-weight:600 !important;
-            font-size:.78rem !important;
-            opacity:1 !important;
-            letter-spacing:.1px;
+            color:var(--tx) !important;font-weight:600 !important;
+            font-size:.74rem !important;opacity:1 !important;
         }
-        .stTextInput input::placeholder,
-        .stNumberInput input::placeholder{
-            color:var(--tx-3) !important;
-            opacity:1 !important;
+        .stTextInput input,.stNumberInput input,.stTextArea textarea{
+            background:var(--card) !important;color:var(--tx) !important;
+            border:1px solid var(--linea) !important;border-radius:9px !important;
+            font-size:.84rem !important;padding:6px 10px !important;
         }
-        .stTextInput input,
-        .stNumberInput input,
-        .stTextArea textarea{
-            background:var(--card) !important;
-            color:var(--tx) !important;
-            border:1px solid var(--linea) !important;
-            border-radius:10px !important;
-            font-size:.88rem !important;
-            padding:8px 12px !important;
-            box-shadow:none !important;
-        }
-        .stTextInput input:focus,
-        .stNumberInput input:focus,
-        .stTextArea textarea:focus{
+        .stTextInput input:focus,.stNumberInput input:focus{
             border-color:var(--azul) !important;
             box-shadow:0 0 0 3px rgba(14,58,90,.1) !important;
         }
         div[data-baseweb="select"] > div{
-            background:var(--card) !important;
-            color:var(--tx) !important;
-            border:1px solid var(--linea) !important;
-            border-radius:10px !important;
-            min-height:38px;
+            background:var(--card) !important;color:var(--tx) !important;
+            border:1px solid var(--linea) !important;border-radius:9px !important;
+            min-height:34px;
         }
         div[data-baseweb="select"] span,
         div[data-baseweb="select"] div[aria-selected],
         div[data-baseweb="select"] input{color:var(--tx) !important;}
-        ul[data-baseweb="menu"], div[data-baseweb="popover"]{
-            background:var(--card) !important;
-            color:var(--tx) !important;
-            border-radius:10px !important;
-            box-shadow:var(--sombra) !important;
-            border:1px solid var(--linea) !important;
+        ul[data-baseweb="menu"],div[data-baseweb="popover"]{
+            background:var(--card) !important;color:var(--tx) !important;
+            border-radius:9px !important;box-shadow:var(--sombra) !important;
         }
         ul[data-baseweb="menu"] li{
-            color:var(--tx) !important;
-            background:transparent !important;
-            font-size:.85rem;
+            color:var(--tx) !important;background:transparent !important;
+            font-size:.8rem;padding:5px 10px !important;
         }
         ul[data-baseweb="menu"] li:hover{background:#f1f5f9 !important;}
-        .stNumberInput button{
-            background:#f1f5f9 !important;
-            color:var(--tx) !important;
-            border:none !important;
-        }
-        .stNumberInput button:hover{background:#e2e8f0 !important;}
 
         /* ===== HEADER ===== */
         .hdr{
             background:linear-gradient(135deg,var(--azul),var(--azul-2));
-            color:#fff;padding:14px 16px;border-radius:16px;
-            margin-bottom:12px;
-            box-shadow:0 6px 16px rgba(14,58,90,.18);
+            color:#fff;padding:10px 13px;border-radius:14px;
+            margin-bottom:6px;box-shadow:0 4px 12px rgba(14,58,90,.16);
         }
         .hdr-top{display:flex;justify-content:space-between;align-items:center;
-                 font-size:.88rem;font-weight:800;letter-spacing:.1px;}
-        .hdr-top .date{font-size:.64rem;opacity:.72;font-weight:500;}
-        .hdr-tasa{margin-top:10px;display:flex;align-items:baseline;gap:10px;}
-        .hdr-tasa .lbl{font-size:.58rem;opacity:.65;text-transform:uppercase;
-                       letter-spacing:.7px;font-weight:700;}
-        .hdr-tasa .val{font-size:1.5rem;font-weight:900;color:var(--ambar);
-                       letter-spacing:-.5px;line-height:1;}
-        .hdr-alt{margin-top:6px;font-size:.66rem;opacity:.65;}
-        .hdr-alt .dot{margin:0 8px;opacity:.4;}
+                 font-size:.82rem;font-weight:800;}
+        .hdr-top .date{font-size:.62rem;opacity:.72;font-weight:500;}
+        .hdr-tasa{margin-top:6px;display:flex;align-items:baseline;gap:9px;}
+        .hdr-tasa .lbl{font-size:.56rem;opacity:.65;text-transform:uppercase;
+                       letter-spacing:.6px;font-weight:700;}
+        .hdr-tasa .val{font-size:1.3rem;font-weight:900;color:var(--ambar);
+                       letter-spacing:-.4px;line-height:1;}
+        .hdr-alt{margin-top:4px;font-size:.62rem;opacity:.65;}
+        .hdr-alt .dot{margin:0 6px;opacity:.4;}
 
-        /* ===== SECCIONES (títulos discretos) ===== */
+        /* ===== SECCIONES ===== */
         .sec{
-            font-size:.68rem;font-weight:800;color:var(--tx-3);
-            letter-spacing:.7px;text-transform:uppercase;
-            margin:14px 0 6px;padding:0;
-            border:none;
+            font-size:.62rem;font-weight:800;color:var(--tx-3);
+            letter-spacing:.6px;text-transform:uppercase;
+            margin:7px 0 3px;padding:0;border:none;
         }
 
-        /* ===== TARJETA PRODUCTO ===== */
+        /* ===== TARJETA PRODUCTO COMPACTA ===== */
         .pcard{
-            background:var(--card);
-            border-radius:12px;
-            padding:10px 8px 8px;
-            text-align:center;
-            box-shadow:var(--sombra);
-            margin-bottom:6px;
-            transition:transform .12s ease;
+            background:var(--card);border-radius:10px;
+            padding:6px 4px 5px;text-align:center;
+            box-shadow:var(--sombra);margin-bottom:2px;
         }
-        .pcard .e{font-size:1.6rem;line-height:1;display:block;}
+        .pcard .e{font-size:1.3rem;line-height:1;display:block;}
         .pcard .n{
-            font-size:.78rem;font-weight:700;color:var(--tx);
-            margin-top:6px;line-height:1.15;
+            font-size:.68rem;font-weight:700;color:var(--tx);
+            margin-top:3px;line-height:1.1;
             display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;
-            overflow:hidden;min-height:1.8em;
+            overflow:hidden;min-height:1.3em;
         }
         .pcard .p{
-            font-size:.92rem;font-weight:900;color:var(--ambar);
-            margin-top:6px;letter-spacing:-.3px;
+            font-size:.82rem;font-weight:900;color:var(--ambar);
+            margin-top:3px;letter-spacing:-.2px;
         }
-        .pcard .b{font-size:.66rem;color:var(--tx-3);margin-top:2px;font-weight:500;}
+        .pcard .b{font-size:.58rem;color:var(--tx-3);margin-top:1px;}
 
         /* ===== BOTONES ===== */
         div.stButton>button{
-            width:100%;
-            border-radius:10px;
-            font-weight:700;
-            border:1px solid var(--linea);
-            background:var(--card);
-            color:var(--tx);
-            padding:.5rem .35rem;
-            font-size:.8rem;
-            line-height:1.1;
-            min-height:0;
+            width:100%;border-radius:9px;font-weight:700;
+            border:1px solid var(--linea);background:var(--card);
+            color:var(--tx);padding:.3rem .25rem;font-size:.74rem;
+            line-height:1;min-height:28px;
             box-shadow:0 1px 2px rgba(15,23,42,.04);
-            transition:all .12s ease;
+            transition:all .1s ease;
         }
         div.stButton>button:hover{border-color:#cbd5e1;background:#f8fafc;}
         div.stButton>button:active{transform:scale(.98);}
         div.stButton>button[kind="primary"]{
             background:var(--verde);color:#fff;border:none;
-            box-shadow:0 3px 8px rgba(39,174,96,.25);
+            box-shadow:0 3px 8px rgba(39,174,96,.22);
         }
         div.stButton>button[kind="primary"]:hover{background:#229954;}
 
-        /* Botón "fiar" (rojo outline) */
+        /* Botones +/-/x más chicos (solo en columnas de carrito) */
+        [data-testid="column"] .stButton > button{
+            padding:.2rem 0 !important;min-height:26px !important;
+            font-size:.85rem !important;line-height:1 !important;
+        }
+
         .btn-fiar button{
-            background:var(--card) !important;
-            color:var(--rojo) !important;
+            background:var(--card) !important;color:var(--rojo) !important;
             border:1.5px solid var(--rojo) !important;
         }
         .btn-fiar button:hover{background:#fef2f2 !important;}
 
         /* ===== MÉTRICAS ===== */
         .mc{
-            background:var(--card);border-radius:12px;padding:10px 8px;
-            text-align:center;box-shadow:var(--sombra);margin-bottom:6px;
-            border-left:none;position:relative;overflow:hidden;
+            background:var(--card);border-radius:10px;padding:7px 6px;
+            text-align:center;box-shadow:var(--sombra);margin-bottom:3px;
+            position:relative;overflow:hidden;
         }
-        .mc::before{
-            content:"";position:absolute;left:0;top:0;bottom:0;width:3px;
-            background:var(--azul);
-        }
+        .mc::before{content:"";position:absolute;left:0;top:0;bottom:0;width:3px;
+                    background:var(--azul);}
         .mc.gold::before{background:var(--ambar);}
         .mc.green::before{background:var(--verde);}
         .mc.red::before{background:var(--rojo);}
-        .mc .l{
-            font-size:.6rem;color:var(--tx-3);text-transform:uppercase;
-            font-weight:800;letter-spacing:.6px;
-        }
-        .mc .v{
-            font-size:1rem;font-weight:900;color:var(--tx);
-            margin-top:3px;letter-spacing:-.3px;
-        }
+        .mc .l{font-size:.56rem;color:var(--tx-3);text-transform:uppercase;
+               font-weight:800;letter-spacing:.5px;}
+        .mc .v{font-size:.92rem;font-weight:900;color:var(--tx);
+               margin-top:2px;letter-spacing:-.2px;}
 
-        /* ===== ITEMS (carrito / CRM / historial) ===== */
+        /* ===== ITEMS ===== */
         .ci{
-            background:var(--card);border-radius:11px;padding:8px 11px;
-            margin-bottom:5px;box-shadow:var(--sombra-sm);border:none;
+            background:var(--card);border-radius:10px;padding:6px 9px;
+            margin-bottom:3px;box-shadow:var(--sombra-sm);
         }
-        .ci .t{font-size:.82rem;font-weight:700;color:var(--tx);line-height:1.25;}
-        .ci .s{font-size:.68rem;color:var(--tx-3);line-height:1.35;margin-top:2px;}
+        .ci .t{font-size:.78rem;font-weight:700;color:var(--tx);line-height:1.2;}
+        .ci .s{font-size:.64rem;color:var(--tx-3);line-height:1.3;margin-top:1px;}
         .ci .row{display:flex;justify-content:space-between;align-items:baseline;}
-        .ci .estado{font-size:.68rem;font-weight:800;}
+        .ci .estado{font-size:.64rem;font-weight:800;}
         .ci .estado.ok{color:var(--verde);}
         .ci .estado.pend{color:var(--rojo);}
 
-        /* ===== TABS (tab bar limpio) ===== */
+        /* ===== TABS ===== */
         .stTabs [data-baseweb="tab-list"]{
-            gap:0;
-            background:transparent;
-            padding:0;
-            border-bottom:1px solid var(--linea);
-            border-radius:0;
-            overflow-x:auto !important;
-            overflow-y:hidden;
-            flex-wrap:nowrap !important;
-            justify-content:space-between;
-            scrollbar-width:none;
-            -ms-overflow-style:none;
+            gap:0;background:transparent;padding:0;
+            border-bottom:1px solid var(--linea);border-radius:0;
+            overflow-x:auto !important;overflow-y:hidden;
+            flex-wrap:nowrap !important;justify-content:space-between;
+            scrollbar-width:none;-ms-overflow-style:none;
             -webkit-overflow-scrolling:touch;
         }
         .stTabs [data-baseweb="tab-list"]::-webkit-scrollbar{display:none;}
         .stTabs [data-baseweb="tab"]{
-            border-radius:0;
-            font-weight:700;
-            font-size:1.05rem;
-            padding:8px 14px;
-            color:var(--tx-3) !important;
-            background:transparent !important;
-            min-height:0;
-            white-space:nowrap !important;
-            flex:0 0 auto !important;
+            border-radius:0;font-weight:700;font-size:.95rem;
+            padding:6px 12px;color:var(--tx-3) !important;
+            background:transparent !important;min-height:0;
+            white-space:nowrap !important;flex:0 0 auto !important;
             border-bottom:2px solid transparent;
-            transition:all .15s ease;
         }
         .stTabs [data-baseweb="tab"]:hover{color:var(--tx-2) !important;}
         .stTabs [aria-selected="true"]{
@@ -283,82 +236,89 @@ def inject_css():
         .stTabs [data-baseweb="tab-highlight"]{display:none;}
         .stTabs [data-baseweb="tab-border"]{display:none;}
 
-        /* ===== DATAFRAMES (claro) ===== */
-        div[data-testid="stDataFrame"]{
-            background:var(--card) !important;
-            border-radius:11px !important;
-            overflow:hidden !important;
-            box-shadow:var(--sombra-sm) !important;
-            border:none !important;
-        }
-        div[data-testid="stDataFrame"] *{color:var(--tx) !important;}
-        div[data-testid="stDataFrame"] [role="columnheader"]{
-            background:#f8fafc !important;color:var(--tx-2) !important;
-            font-weight:800 !important;font-size:.68rem !important;
-            text-transform:uppercase;letter-spacing:.4px;
-        }
-        div[data-testid="stDataFrame"] [role="gridcell"]{
-            font-size:.76rem !important;
-        }
-
         /* ===== ALERTS ===== */
         div[data-testid="stAlert"]{
             background:#eff6ff !important;color:var(--tx) !important;
-            border-radius:10px !important;border-left:3px solid var(--azul) !important;
-            padding:8px 12px !important;
+            border-radius:9px !important;border-left:3px solid var(--azul) !important;
+            padding:5px 10px !important;margin:3px 0 !important;
         }
-        div[data-testid="stAlert"] *{color:var(--tx) !important;font-size:.78rem;}
-        div[data-testid="stAlert"][data-baseweb="notification"] svg{display:none;}
+        div[data-testid="stAlert"] *{color:var(--tx) !important;font-size:.7rem !important;}
+        div[data-testid="stAlert"] svg{display:none;}
 
         /* ===== WHATSAPP ===== */
         .wa{
             display:block;text-align:center;background:#25D366;color:#fff !important;
-            padding:8px 6px;border-radius:10px;font-weight:700;text-decoration:none;
-            font-size:.76rem;line-height:1.1;margin-top:2px;
-            box-shadow:0 2px 6px rgba(37,211,102,.28);
+            padding:6px 5px;border-radius:9px;font-weight:700;
+            text-decoration:none;font-size:.7rem;line-height:1.1;
+            box-shadow:0 2px 6px rgba(37,211,102,.25);
         }
-        .wa:hover{background:#1faa52;}
 
         /* ===== CARRITO TOTAL ===== */
         .car-total{
             background:linear-gradient(135deg,var(--azul),var(--azul-2));
-            color:#fff;border-radius:14px;padding:12px 14px;margin-top:8px;
-            box-shadow:0 6px 16px rgba(14,58,90,.2);
+            color:#fff;border-radius:12px;padding:9px 13px;margin-top:5px;
+            box-shadow:0 5px 14px rgba(14,58,90,.18);
         }
-        .car-total .row{display:flex;justify-content:space-between;align-items:baseline;
-                        font-size:.8rem;opacity:.9;}
-        .car-total .row.big{
-            font-size:1.15rem;font-weight:900;opacity:1;margin-top:3px;
-            letter-spacing:-.4px;
-        }
-        .car-total .tasa-note{
-            font-size:.6rem;opacity:.6;margin-top:6px;
-            text-transform:uppercase;letter-spacing:.4px;
-        }
+        .car-total .row{display:flex;justify-content:space-between;
+                        align-items:baseline;font-size:.75rem;opacity:.9;}
+        .car-total .row.big{font-size:1rem;font-weight:900;opacity:1;
+                            margin-top:2px;letter-spacing:-.3px;}
+        .car-total .tasa-note{font-size:.56rem;opacity:.6;margin-top:4px;
+                              text-transform:uppercase;letter-spacing:.4px;}
 
         /* ===== EXPANDER ===== */
-        details, summary{background:transparent;}
         details > summary{
-            list-style:none;padding:8px 10px !important;
-            font-size:.8rem;font-weight:700;color:var(--tx);
-            background:var(--card);border-radius:10px;
+            list-style:none;padding:6px 10px !important;
+            font-size:.76rem;font-weight:700;color:var(--tx);
+            background:var(--card);border-radius:9px;
             box-shadow:var(--sombra-sm);
         }
-        details[open] > summary{border-radius:10px 10px 0 0;}
 
-        /* ===== FORMULARIOS ===== */
+        /* ============================================================
+           🆕 GRID DE EMOJIS — selector tipo teclado del teléfono
+           ============================================================ */
+        /* Contenedor de emoji picker: fuerza grid 6 columnas */
+        .emoji-grid{
+            display:grid;
+            grid-template-columns:repeat(6,1fr);
+            gap:4px;
+            padding:6px;
+            background:var(--card);
+            border-radius:10px;
+            box-shadow:var(--sombra-sm);
+            max-height:220px;
+            overflow-y:auto;
+            margin-bottom:6px;
+        }
+        .emoji-grid button,
+        .emoji-btn{
+            aspect-ratio:1;
+            border-radius:8px;
+            border:1px solid transparent;
+            background:transparent;
+            font-size:1.15rem;
+            cursor:pointer;
+            transition:all .1s ease;
+            padding:0;
+            line-height:1;
+            display:flex;align-items:center;justify-content:center;
+        }
+        .emoji-btn:hover{background:#f1f5f9;border-color:var(--linea);}
+        .emoji-btn.sel{background:#dbeafe;border-color:var(--azul);}
+
+        /* Fallback: selectbox de emojis en grid */
+        div[data-testid="stSelectbox"]:has(label:contains("Emoji")) ul{
+            display:grid !important;
+            grid-template-columns:repeat(6,1fr);
+        }
+
+        /* ===== FORM ===== */
         [data-testid="stForm"]{
             border:none !important;background:transparent !important;
             padding:0 !important;
         }
-        [data-testid="stForm"] label,
-        [data-testid="stForm"] p{
+        [data-testid="stForm"] label,[data-testid="stForm"] p{
             color:var(--tx) !important;font-weight:700 !important;
-        }
-
-        /* Info blue (aviso tasa 0) */
-        div[data-testid="stAlert"][data-baseweb="notification"]{
-            margin-bottom:8px;
         }
         </style>""",
         unsafe_allow_html=True,
@@ -440,10 +400,7 @@ def init_db():
         cur.executemany(
             "INSERT OR IGNORE INTO configuracion(llave,valor) VALUES(?,?)",
             list(defaults.items()),
-        )
-
-
-# ============================================================
+        )# ============================================================
 # CRUD
 # ============================================================
 @st.cache_data(ttl=3, show_spinner=False)
@@ -530,7 +487,7 @@ def registrar_venta(cliente_id, cliente_nombre, alumno, representante,
             "representante,monto_usd,monto_bs,tasa_usada,estado,detalles) "
             "VALUES(?,?,?,?,?,?,?,?,?,?)",
             (
-                datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+                ahora_ve().strftime("%Y-%m-%d %H:%M:%S"),
                 int(cliente_id or 0),
                 cliente_nombre or "Anónimo",
                 alumno or "",
@@ -662,12 +619,14 @@ def construir_mensaje_recordatorio(representante, alumno,
 
 
 def fecha_corta(f: str) -> str:
-    """YYYY-MM-DD HH:MM:SS -> DD/MM HH:MM"""
     try:
         dt = datetime.strptime(f, "%Y-%m-%d %H:%M:%S")
         return dt.strftime("%d/%m · %H:%M")
     except Exception:
-        return f[:16]# ============================================================
+        return f[:16]
+
+
+# ============================================================
 # CALLBACKS CARRITO
 # ============================================================
 def _car_key(pid) -> str:
@@ -719,7 +678,7 @@ def carrito_detalle_txt() -> str:
 
 
 # ============================================================
-# HEADER PULIDO
+# HEADER
 # ============================================================
 def render_header(cfg: dict):
     t = obtener_tasa_activa(cfg)
@@ -730,7 +689,7 @@ def render_header(cfg: dict):
         f"""<div class="hdr">
             <div class="hdr-top">
                 <span>🍽️ Tu Cantina Express</span>
-                <span class="date">{datetime.now().strftime('%d/%m/%Y')}</span>
+                <span class="date">{ahora_ve().strftime('%d/%m/%Y')}</span>
             </div>
             <div class="hdr-tasa">
                 <span class="lbl">{tipo}</span>
@@ -858,7 +817,7 @@ def modulo_pos(cfg: dict):
     for k, item in list(car.items()):
         sub_usd = round(item["precio"] * item["qty"], 2)
         sub_bs = round(sub_usd * tasa, 2)
-        c1, c2, c3 = st.columns([5, 3, 1], gap="small")
+        c1, c2 = st.columns([5, 3], gap="small")
         with c1:
             st.markdown(
                 f'<div class="ci">'
@@ -868,16 +827,16 @@ def modulo_pos(cfg: dict):
                 unsafe_allow_html=True,
             )
         with c2:
-            b1, b2 = st.columns(2, gap="small")
+            b1, b2, b3 = st.columns(3, gap="small")
             with b1:
                 st.button("−", key=f"r_{k}", on_click=cb_dec, args=(k,),
                           use_container_width=True)
             with b2:
                 st.button("+", key=f"s_{k}", on_click=cb_inc, args=(k,),
                           use_container_width=True)
-        with c3:
-            st.button("✕", key=f"d_{k}", on_click=cb_del, args=(k,),
-                      use_container_width=True)
+            with b3:
+                st.button("✕", key=f"d_{k}", on_click=cb_del, args=(k,),
+                          use_container_width=True)
 
     total_usd = carrito_total_usd()
     total_bs = round(total_usd * tasa, 2)
@@ -947,7 +906,7 @@ def modulo_crm(cfg: dict):
                 f'<div class="t">👤 {c["alumno"] or c["nombre"]}</div>'
                 f'<div class="s">Rep: {c["representante"] or "—"} · '
                 f'📱 {c["telefono"] or "—"}</div>'
-                f'<div class="s" style="margin-top:3px">Deuda: '
+                f'<div class="s" style="margin-top:2px">Deuda: '
                 f'<b style="color:{"#e74c3c" if tiene else "#27ae60"}">'
                 f'${de["usd"]:.2f}</b> · Bs. {dbs:,.2f}</div></div>',
                 unsafe_allow_html=True,
@@ -987,7 +946,7 @@ def modulo_crm(cfg: dict):
                     s1, s2 = st.columns([5, 1], gap="small")
                     with s1:
                         st.markdown(
-                            f'<div style="font-size:.66rem;color:#475569;padding:3px 6px">'
+                            f'<div style="font-size:.62rem;color:#475569;padding:2px 5px">'
                             f'{fecha_corta(v["fecha"])} · '
                             f'${float(v["monto_usd"]):.2f} · {v["detalles"]}</div>',
                             unsafe_allow_html=True,
@@ -1020,21 +979,72 @@ def modulo_crm(cfg: dict):
 
 
 # ============================================================
-# MÓDULO PRODUCTOS
+# MÓDULO PRODUCTOS (con selector de emojis en grid)
 # ============================================================
-EMOJIS = ["🍔", "🌭", "🍕", "🥟", "🍟", "🌮", "🌯", "🥪", "🍗", "🍖",
-          "🥗", "🍝", "🍜", "🍲", "🍛", "🍱", "🥘", "🥤", "💧", "🧃",
-          "☕", "🍵", "🧋", "🍺", "🥛", "🍹", "🍰", "🍪", "🍫", "🍩",
-          "🍦", "🧁", "🍮", "🥧", "🍎", "🍌", "🍓", "🍊", "🍇", "🥭",
-          "🍉", "🍴", "🥄", "🧂", "🍿", "🥨", "🥐", "🍳", "🥞", "🧇"]
+EMOJIS = [
+    "🍔","🌭","🍕","🥟","🍟","🌮","🌯","🥪","🍗","🍖","🥗","🍝",
+    "🍜","🍲","🍛","🍱","🥘","🥤","💧","🧃","☕","🍵","🧋","🍺",
+    "🥛","🍹","🍰","🍪","🍫","🍩","🍦","🧁","🍮","🥧","🍎","🍌",
+    "🍓","🍊","🍇","🥭","🍉","🍴","🥄","🧂","🍿","🥨","🥐","🍳",
+    "🥞","🧇","🥩","🥓","🍤","🍣","🍙","🍘","🥠","🥡","🍢","🍡",
+]
+
+
+def selector_emojis(key_prefix: str = "emoji_sel") -> str:
+    """
+    Selector de emojis en cuadrícula táctil tipo teclado del teléfono.
+    Usa session_state para mantener el emoji seleccionado.
+    """
+    state_key = f"{key_prefix}_actual"
+    if state_key not in st.session_state:
+        st.session_state[state_key] = EMOJIS[0]
+
+    # Preview del emoji elegido
+    st.markdown(
+        f'<div style="display:flex;align-items:center;gap:10px;'
+        f'background:#fff;padding:6px 10px;border-radius:9px;'
+        f'box-shadow:0 1px 4px rgba(15,23,42,.05);margin-bottom:4px">'
+        f'<span style="font-size:1.5rem">{st.session_state[state_key]}</span>'
+        f'<span style="font-size:.72rem;color:#94a3b8">'
+        f'Emoji seleccionado</span></div>',
+        unsafe_allow_html=True,
+    )
+
+    # Grid de emojis: filas de 6
+    with st.container():
+        filas = [EMOJIS[i:i+6] for i in range(0, len(EMOJIS), 6)]
+        for idx_fila, fila in enumerate(filas):
+            cols = st.columns(6, gap="small")
+            for idx_col, em in enumerate(fila):
+                with cols[idx_col]:
+                    sel = "✓" if st.session_state[state_key] == em else ""
+                    if st.button(
+                        em,
+                        key=f"{key_prefix}_btn_{idx_fila}_{idx_col}",
+                        use_container_width=True,
+                        help=sel or None,
+                    ):
+                        st.session_state[state_key] = em
+                        st.rerun()
+
+    return st.session_state[state_key]
 
 
 def modulo_productos(cfg: dict):
     tasa = obtener_tasa_activa(cfg)
     st.markdown('<div class="sec">Nuevo producto</div>', unsafe_allow_html=True)
 
-    with st.form("form_prod", clear_on_submit=True):
-        em = st.selectbox("Emoji", EMOJIS, index=0)
+    with st.form("form_prod", clear_on_submit=False):
+        # Selector de emojis (fuera del form real, ver nota abajo)
+        st.markdown(
+            '<div style="font-size:.74rem;font-weight:600;color:#0f172a;'
+            'margin-bottom:4px">Emoji</div>',
+            unsafe_allow_html=True,
+        )
+        # Nota: st.form no permite widgets interactivos dentro, así que el
+        # selector se maneja fuera del form.
+        emoji_sel = st.session_state.get("emoji_sel_actual", EMOJIS[0])
+
         nom = st.text_input("Nombre *")
         c1, c2 = st.columns(2, gap="small")
         with c1:
@@ -1054,9 +1064,17 @@ def modulo_productos(cfg: dict):
             elif pr <= 0:
                 st.error("El precio debe ser mayor a 0.")
             else:
-                add_producto(em, nom, pr, co, cat, sku)
+                add_producto(emoji_sel, nom, pr, co, cat, sku)
                 st.success(f"'{nom.strip()}' agregado.")
                 st.rerun()
+
+    # Selector de emojis FUERA del form (porque st.form bloquea st.button)
+    st.markdown(
+        '<div style="font-size:.74rem;font-weight:600;color:#0f172a;'
+        'margin:8px 0 4px">Emoji seleccionado</div>',
+        unsafe_allow_html=True,
+    )
+    selector_emojis("emoji_sel")
 
     st.markdown('<div class="sec">Catálogo actual</div>', unsafe_allow_html=True)
     pdf = get_productos()
@@ -1093,14 +1111,18 @@ def modulo_productos(cfg: dict):
 
 
 # ============================================================
-# REPORTES
+# REPORTES (UTF-8 correcto para TXT y CSV)
 # ============================================================
 def _reporte_txt(vdf: pd.DataFrame, cfg: dict) -> str:
+    """
+    Reporte TXT con codificación UTF-8 (para que se lean tildes y ñ).
+    Se devuelve como str y al descargar se codifica con .encode('utf-8').
+    """
     t = obtener_tasa_activa(cfg)
     L = ["=" * 62,
          "      TU CANTINA EXPRESS · REPORTE DE OPERACIONES",
          "=" * 62,
-         f"Generado : {datetime.now().strftime('%d/%m/%Y %H:%M:%S')}",
+         f"Generado : {ahora_ve().strftime('%d/%m/%Y %H:%M:%S')} (hora VE)",
          f"Tasa     : Bs. {t:,.2f} por USD ({cfg.get('tasa_activa_tipo','')})",
          f"Negocio  : {cfg.get('negocio_nombre','')}",
          "-" * 62, ""]
@@ -1162,8 +1184,8 @@ def modulo_reportes(cfg: dict):
         metric_card("Operaciones", f"{n}")
 
     st.markdown(
-        f'<div style="text-align:center;font-size:.64rem;color:#94a3b8;'
-        f'margin-top:4px">Facturado Bs. {tb:,.2f} · Tasa Bs. {tasa:,.2f}</div>',
+        f'<div style="text-align:center;font-size:.6rem;color:#94a3b8;'
+        f'margin-top:2px">Facturado Bs. {tb:,.2f} · Tasa Bs. {tasa:,.2f}</div>',
         unsafe_allow_html=True,
     )
 
@@ -1172,7 +1194,6 @@ def modulo_reportes(cfg: dict):
         st.info("Sin ventas registradas.")
         return
 
-    # Mostrar últimas 30 como cards HTML (limpio en móvil)
     for _, r in vdf.head(30).iterrows():
         pendiente = r["estado"] == "Por cobrar"
         cls = "pend" if pendiente else "ok"
@@ -1194,7 +1215,6 @@ def modulo_reportes(cfg: dict):
     if len(vdf) > 30:
         st.caption(f"Mostrando las últimas 30 de {len(vdf)} operaciones.")
 
-    # ============ ELIMINAR VENTA ============
     st.markdown('<div class="sec">Eliminar venta</div>',
                 unsafe_allow_html=True)
     with st.expander("Eliminar una venta del historial", expanded=False):
@@ -1241,11 +1261,14 @@ def modulo_reportes(cfg: dict):
             st.success("Historial borrado.")
             st.rerun()
 
+    # ============ EXPORTAR CON UTF-8 CORRECTO ============
     st.markdown('<div class="sec">Exportar</div>', unsafe_allow_html=True)
+
+    # CSV con UTF-8-SIG (con BOM) para que Excel lea tildes y ñ correctamente
     buf = io.StringIO()
     w = csv.writer(buf, delimiter=";")
-    w.writerow(["ID", "Fecha", "Cliente", "Alumno", "Rep", "USD",
-                "Bs", "Tasa", "Estado", "Detalles"])
+    w.writerow(["ID", "Fecha", "Cliente", "Alumno", "Representante",
+                "USD", "Bs", "Tasa", "Estado", "Detalles"])
     for _, r in vdf.iterrows():
         w.writerow([
             r["id"], r["fecha"], r["cliente_nombre"], r["alumno"],
@@ -1253,19 +1276,30 @@ def modulo_reportes(cfg: dict):
             f"{float(r['monto_bs']):.2f}", f"{float(r['tasa_usada']):.2f}",
             r["estado"], r["detalles"],
         ])
+    csv_bytes = buf.getvalue().encode("utf-8-sig")
 
-    hoy = datetime.now().strftime("%Y%m%d_%H%M")
+    # TXT con UTF-8 explícito (sin BOM para que sea legible en cualquier editor)
+    txt_str = _reporte_txt(vdf, cfg)
+    txt_bytes = txt_str.encode("utf-8")
+
+    hoy = ahora_ve().strftime("%Y%m%d_%H%M")
     cA, cB = st.columns(2, gap="small")
     with cA:
         st.download_button(
-            "Descargar CSV", buf.getvalue().encode("utf-8-sig"),
-            f"ventas_{hoy}.csv", "text/csv", use_container_width=True,
+            "Descargar CSV",
+            data=csv_bytes,
+            file_name=f"ventas_{hoy}.csv",
+            mime="text/csv; charset=utf-8",
+            use_container_width=True,
         )
     with cB:
         st.download_button(
-            "Descargar TXT", _reporte_txt(vdf, cfg).encode("utf-8"),
-            f"reporte_{hoy}.txt", "text/plain", use_container_width=True,
-)# ============================================================
+            "Descargar TXT",
+            data=txt_bytes,
+            file_name=f"reporte_{hoy}.txt",
+            mime="text/plain; charset=utf-8",
+            use_container_width=True,
+    )# ============================================================
 # CONFIGURACIÓN
 # ============================================================
 def modulo_config(cfg: dict):
@@ -1316,9 +1350,10 @@ def modulo_config(cfg: dict):
             st.rerun()
 
     st.markdown(
-        f'<div style="font-size:.68rem;color:#94a3b8;margin-top:10px;'
+        f'<div style="font-size:.66rem;color:#94a3b8;margin-top:8px;'
         f'text-align:center">Productos {len(get_productos())} · '
-        f'Clientes {len(get_clientes())} · Ventas {len(get_ventas())}</div>',
+        f'Clientes {len(get_clientes())} · Ventas {len(get_ventas())}<br>'
+        f'Hora VE: {ahora_ve().strftime("%d/%m/%Y %H:%M:%S")}</div>',
         unsafe_allow_html=True,
     )
 
@@ -1336,6 +1371,7 @@ def init_state():
         "_reset_cliente": False,
         "_venta_msg": None,
         "_venta_estado": None,
+        "emoji_sel_actual": EMOJIS[0] if 'EMOJIS' in globals() else "🍔",
     }
     for k, v in defaults.items():
         if k not in st.session_state:
