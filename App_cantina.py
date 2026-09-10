@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""Tu Cantina Express v9 · POS & CRM local · VET · mobile-first"""
+"""Tu Cantina Express v10 · POS & CRM · VET · botones HTML (no se apilan)"""
 import streamlit as st
 import sqlite3
 import pandas as pd
@@ -11,9 +11,6 @@ from pathlib import Path
 from contextlib import contextmanager
 from datetime import datetime, timezone, timedelta
 
-# ============================================================
-# ZONA HORARIA VENEZUELA
-# ============================================================
 VET = timezone(timedelta(hours=-4))
 os.environ['TZ'] = 'America/Caracas'
 try:
@@ -27,9 +24,6 @@ def ahora_ve() -> datetime:
     return datetime.now(VET)
 
 
-# ============================================================
-# CONFIG GLOBAL
-# ============================================================
 st.set_page_config(
     page_title="Tu Cantina Express",
     page_icon="🍽️",
@@ -45,321 +39,201 @@ TIPOS_TASA = ("BCV USD", "BCV EUR", "Personalizada")
 # CSS
 # ============================================================
 def inject_css():
-    st.markdown(
-        """<style>
-        #MainMenu,footer,header,.stDeployButton,[data-testid="stToolbar"],
-        [data-testid="stStatusWidget"],[data-testid="stDecoration"]{display:none!important;}
+    st.markdown("""<style>
+    #MainMenu,footer,header,.stDeployButton,[data-testid="stToolbar"],
+    [data-testid="stStatusWidget"],[data-testid="stDecoration"]{display:none!important;}
+    :root{--azul:#0e3a5a;--azul-2:#14496f;--ambar:#f39c12;--verde:#27ae60;
+    --rojo:#e74c3c;--tx:#0f172a;--tx-2:#475569;--tx-3:#94a3b8;
+    --fondo:#f6f8fa;--card:#fff;--linea:#e2e8f0;
+    --sombra:0 2px 6px rgba(15,23,42,.06);--sombra-sm:0 1px 4px rgba(15,23,42,.05);}
+    *{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;}
+    .main .block-container{padding:.4rem .55rem 4rem .55rem;max-width:520px;margin:auto;}
+    .stApp{background:var(--fondo);}
+    [data-testid="stVerticalBlock"]{gap:.25rem!important;}
+    .element-container{margin-bottom:0!important;}
+    hr{display:none;}
+    [data-testid="stForm"]>[data-testid="stVerticalBlock"]{gap:.3rem!important;}
 
-        :root{
-            --azul:#0e3a5a;--azul-2:#14496f;
-            --ambar:#f39c12;--verde:#27ae60;--rojo:#e74c3c;
-            --tx:#0f172a;--tx-2:#475569;--tx-3:#94a3b8;
-            --fondo:#f6f8fa;--card:#fff;--linea:#e2e8f0;
-            --sombra:0 2px 6px rgba(15,23,42,.06);
-            --sombra-sm:0 1px 4px rgba(15,23,42,.05);
-        }
-        * {font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;}
+    .stTextInput label,.stNumberInput label,.stSelectbox label,
+    .stTextArea label,.stMultiSelect label,.stRadio label,
+    .stCheckbox label,.stSlider label,
+    div[data-testid="stWidgetLabel"] label,
+    div[data-testid="stWidgetLabel"] p{color:var(--tx)!important;
+    font-weight:600!important;font-size:.72rem!important;opacity:1!important;}
+    .stTextInput input,.stNumberInput input,.stTextArea textarea{
+    background:var(--card)!important;color:var(--tx)!important;
+    border:1px solid var(--linea)!important;border-radius:9px!important;
+    font-size:.84rem!important;padding:6px 10px!important;}
+    .stTextInput input:focus,.stNumberInput input:focus{
+    border-color:var(--azul)!important;box-shadow:0 0 0 3px rgba(14,58,90,.1)!important;}
+    div[data-baseweb="select"]>div{background:var(--card)!important;
+    color:var(--tx)!important;border:1px solid var(--linea)!important;
+    border-radius:9px!important;min-height:34px;}
+    div[data-baseweb="select"] span,
+    div[data-baseweb="select"] div[aria-selected],
+    div[data-baseweb="select"] input{color:var(--tx)!important;}
+    ul[data-baseweb="menu"],div[data-baseweb="popover"]{background:var(--card)!important;
+    color:var(--tx)!important;border-radius:9px!important;box-shadow:var(--sombra)!important;}
+    ul[data-baseweb="menu"] li{color:var(--tx)!important;
+    background:transparent!important;font-size:.8rem;padding:5px 10px!important;}
+    ul[data-baseweb="menu"] li:hover{background:#f1f5f9!important;}
 
-        .main .block-container{padding:.4rem .55rem 4rem .55rem;max-width:520px;margin:auto;}
-        .stApp{background:var(--fondo);}
+    .hdr{background:linear-gradient(135deg,var(--azul),var(--azul-2));
+    color:#fff;padding:10px 13px;border-radius:14px;margin-bottom:6px;
+    box-shadow:0 4px 12px rgba(14,58,90,.16);}
+    .hdr-top{display:flex;justify-content:space-between;align-items:center;
+    font-size:.82rem;font-weight:800;}
+    .hdr-top .date{font-size:.62rem;opacity:.72;font-weight:500;}
+    .hdr-tasa{margin-top:6px;display:flex;align-items:baseline;gap:9px;}
+    .hdr-tasa .lbl{font-size:.56rem;opacity:.65;text-transform:uppercase;
+    letter-spacing:.6px;font-weight:700;}
+    .hdr-tasa .val{font-size:1.3rem;font-weight:900;color:var(--ambar);
+    letter-spacing:-.4px;line-height:1;}
+    .hdr-alt{margin-top:4px;font-size:.62rem;opacity:.65;}
+    .hdr-alt .dot{margin:0 6px;opacity:.4;}
 
-        [data-testid="stVerticalBlock"]{gap:.25rem !important;}
-        .element-container{margin-bottom:0 !important;}
-        hr{display:none;}
-        [data-testid="stForm"] > [data-testid="stVerticalBlock"]{gap:.3rem !important;}
+    .sec{font-size:.62rem;font-weight:800;color:var(--tx-3);
+    letter-spacing:.6px;text-transform:uppercase;margin:7px 0 3px;padding:0;border:none;}
 
-        /* Labels e inputs */
-        .stTextInput label,.stNumberInput label,.stSelectbox label,
-        .stTextArea label,.stMultiSelect label,.stRadio label,
-        .stCheckbox label,.stSlider label,
-        div[data-testid="stWidgetLabel"] label,
-        div[data-testid="stWidgetLabel"] p{
-            color:var(--tx) !important;font-weight:600 !important;
-            font-size:.72rem !important;opacity:1 !important;
-        }
-        .stTextInput input,.stNumberInput input,.stTextArea textarea{
-            background:var(--card) !important;color:var(--tx) !important;
-            border:1px solid var(--linea) !important;border-radius:9px !important;
-            font-size:.84rem !important;padding:6px 10px !important;
-        }
-        .stTextInput input:focus,.stNumberInput input:focus{
-            border-color:var(--azul) !important;
-            box-shadow:0 0 0 3px rgba(14,58,90,.1) !important;
-        }
-        div[data-baseweb="select"] > div{
-            background:var(--card) !important;color:var(--tx) !important;
-            border:1px solid var(--linea) !important;border-radius:9px !important;
-            min-height:34px;
-        }
-        div[data-baseweb="select"] span,
-        div[data-baseweb="select"] div[aria-selected],
-        div[data-baseweb="select"] input{color:var(--tx) !important;}
-        ul[data-baseweb="menu"],div[data-baseweb="popover"]{
-            background:var(--card) !important;color:var(--tx) !important;
-            border-radius:9px !important;box-shadow:var(--sombra) !important;
-        }
-        ul[data-baseweb="menu"] li{
-            color:var(--tx) !important;background:transparent !important;
-            font-size:.8rem;padding:5px 10px !important;
-        }
-        ul[data-baseweb="menu"] li:hover{background:#f1f5f9 !important;}
+    .pcard{background:var(--card);border-radius:10px;padding:6px 4px 5px;
+    text-align:center;box-shadow:var(--sombra);margin-bottom:2px;position:relative;}
+    .pcard .e{font-size:1.3rem;line-height:1;display:block;}
+    .pcard .n{font-size:.68rem;font-weight:700;color:var(--tx);margin-top:3px;
+    line-height:1.1;display:-webkit-box;-webkit-line-clamp:2;
+    -webkit-box-orient:vertical;overflow:hidden;min-height:1.3em;}
+    .pcard .p{font-size:.82rem;font-weight:900;color:var(--ambar);
+    margin-top:3px;letter-spacing:-.2px;}
+    .pcard .b{font-size:.58rem;color:var(--tx-3);margin-top:1px;}
+    .pcard .badge{position:absolute;top:4px;right:4px;background:#0e3a5a;
+    color:#fff;font-size:.58rem;font-weight:800;border-radius:20px;
+    padding:1px 6px;min-width:16px;text-align:center;line-height:1.2;}
 
-        /* Header */
-        .hdr{
-            background:linear-gradient(135deg,var(--azul),var(--azul-2));
-            color:#fff;padding:10px 13px;border-radius:14px;
-            margin-bottom:6px;box-shadow:0 4px 12px rgba(14,58,90,.16);
-        }
-        .hdr-top{display:flex;justify-content:space-between;align-items:center;
-                 font-size:.82rem;font-weight:800;}
-        .hdr-top .date{font-size:.62rem;opacity:.72;font-weight:500;}
-        .hdr-tasa{margin-top:6px;display:flex;align-items:baseline;gap:9px;}
-        .hdr-tasa .lbl{font-size:.56rem;opacity:.65;text-transform:uppercase;
-                       letter-spacing:.6px;font-weight:700;}
-        .hdr-tasa .val{font-size:1.3rem;font-weight:900;color:var(--ambar);
-                       letter-spacing:-.4px;line-height:1;}
-        .hdr-alt{margin-top:4px;font-size:.62rem;opacity:.65;}
-        .hdr-alt .dot{margin:0 6px;opacity:.4;}
+    div.stButton>button{width:100%;border-radius:9px;font-weight:700;
+    border:1px solid var(--linea);background:var(--card);color:var(--tx);
+    padding:.3rem .5rem;font-size:.74rem;line-height:1;min-height:30px;
+    box-shadow:0 1px 2px rgba(15,23,42,.04);transition:all .1s ease;}
+    div.stButton>button:hover{border-color:#cbd5e1;background:#f8fafc;}
+    div.stButton>button:active{transform:scale(.97);}
+    div.stButton>button[kind="primary"]{background:var(--verde);color:#fff;
+    border:none;box-shadow:0 3px 8px rgba(39,174,96,.22);min-height:36px;
+    font-size:.8rem;padding:.4rem .5rem;}
+    div.stButton>button[kind="primary"]:hover{background:#229954;}
+    .btn-fiar button{background:var(--card)!important;color:var(--rojo)!important;
+    border:1.5px solid var(--rojo)!important;}
+    .btn-fiar button:hover{background:#fef2f2!important;}
 
-        /* Secciones */
-        .sec{
-            font-size:.62rem;font-weight:800;color:var(--tx-3);
-            letter-spacing:.6px;text-transform:uppercase;
-            margin:7px 0 3px;padding:0;border:none;
-        }
+    .mc{background:var(--card);border-radius:10px;padding:7px 6px;
+    text-align:center;box-shadow:var(--sombra);margin-bottom:3px;
+    position:relative;overflow:hidden;}
+    .mc::before{content:"";position:absolute;left:0;top:0;bottom:0;width:3px;
+    background:var(--azul);}
+    .mc.gold::before{background:var(--ambar);}
+    .mc.green::before{background:var(--verde);}
+    .mc.red::before{background:var(--rojo);}
+    .mc .l{font-size:.56rem;color:var(--tx-3);text-transform:uppercase;
+    font-weight:800;letter-spacing:.5px;}
+    .mc .v{font-size:.92rem;font-weight:900;color:var(--tx);margin-top:2px;}
 
-        /* Tarjeta producto */
-        .pcard{
-            background:var(--card);border-radius:10px;
-            padding:6px 4px 5px;text-align:center;
-            box-shadow:var(--sombra);margin-bottom:2px;position:relative;
-        }
-        .pcard .e{font-size:1.3rem;line-height:1;display:block;}
-        .pcard .n{font-size:.68rem;font-weight:700;color:var(--tx);
-                  margin-top:3px;line-height:1.1;
-                  display:-webkit-box;-webkit-line-clamp:2;
-                  -webkit-box-orient:vertical;overflow:hidden;
-                  min-height:1.3em;}
-        .pcard .p{font-size:.82rem;font-weight:900;color:var(--ambar);
-                  margin-top:3px;letter-spacing:-.2px;}
-        .pcard .b{font-size:.58rem;color:var(--tx-3);margin-top:1px;}
-        .pcard .badge{
-            position:absolute;top:4px;right:4px;
-            background:#0e3a5a;color:#fff;font-size:.58rem;
-            font-weight:800;border-radius:20px;
-            padding:1px 6px;min-width:16px;text-align:center;line-height:1.2;
-        }
+    .ci{background:var(--card);border-radius:10px;padding:6px 9px;
+    margin-bottom:3px;box-shadow:var(--sombra-sm);}
+    .ci .t{font-size:.78rem;font-weight:700;color:var(--tx);line-height:1.2;}
+    .ci .s{font-size:.64rem;color:var(--tx-3);line-height:1.3;margin-top:1px;}
+    .ci .row{display:flex;justify-content:space-between;align-items:baseline;}
+    .ci .estado{font-size:.64rem;font-weight:800;}
+    .ci .estado.ok{color:var(--verde);}
+    .ci .estado.pend{color:var(--rojo);}
 
-        /* Botones generales */
-        div.stButton>button{
-            width:100%;border-radius:9px;font-weight:700;
-            border:1px solid var(--linea);background:var(--card);
-            color:var(--tx);padding:.3rem .5rem;font-size:.74rem;
-            line-height:1;min-height:30px;
-            box-shadow:0 1px 2px rgba(15,23,42,.04);
-            transition:all .1s ease;
-        }
-        div.stButton>button:hover{border-color:#cbd5e1;background:#f8fafc;}
-        div.stButton>button:active{transform:scale(.97);}
-        div.stButton>button[kind="primary"]{
-            background:var(--verde);color:#fff;border:none;
-            box-shadow:0 3px 8px rgba(39,174,96,.22);
-            min-height:36px;font-size:.8rem;padding:.4rem .5rem;
-        }
-        div.stButton>button[kind="primary"]:hover{background:#229954;}
+    .car-item-box{background:#ffffff;border-radius:10px 10px 0 0;
+    padding:7px 11px 3px;margin-top:6px;box-shadow:0 1px 4px rgba(15,23,42,.05);}
+    .car-item-row{display:flex;justify-content:space-between;
+    align-items:baseline;gap:8px;}
+    .car-item-name{font-size:.82rem;font-weight:800;color:#0f172a;
+    line-height:1.2;flex:1;min-width:0;white-space:nowrap;overflow:hidden;
+    text-overflow:ellipsis;}
+    .car-item-total{font-size:.9rem;font-weight:900;color:#0e3a5a;
+    letter-spacing:-.3px;flex:0 0 auto;}
+    .car-item-sub{font-size:.64rem;color:#94a3b8;line-height:1.3;margin-top:1px;}
 
-        .btn-fiar button{
-            background:var(--card) !important;color:var(--rojo) !important;
-            border:1.5px solid var(--rojo) !important;
-        }
-        .btn-fiar button:hover{background:#fef2f2 !important;}
+    /* ===== BOTONES HTML DEL CARRITO ===== */
+    .btn-row{display:flex!important;flex-direction:row!important;
+    flex-wrap:nowrap!important;gap:6px!important;margin:5px 0 8px 0!important;
+    align-items:center;width:100%;}
+    .mini-btn{display:inline-flex!important;align-items:center;
+    justify-content:center;width:46px!important;height:38px!important;
+    background:#ffffff;border:1px solid #e2e8f0;border-radius:8px;
+    color:#0f172a!important;font-size:1.1rem;font-weight:900;
+    text-decoration:none!important;box-shadow:0 1px 2px rgba(15,23,42,.04);
+    transition:all .1s ease;flex:0 0 auto!important;line-height:1;}
+    .mini-btn:hover{background:#f8fafc;border-color:#cbd5e1;
+    text-decoration:none!important;}
+    .mini-btn:active{transform:scale(.95);}
+    .mini-btn.del{color:#e74c3c!important;border-color:#fecaca;
+    margin-left:auto!important;}
+    .mini-btn.del:hover{background:#fef2f2;border-color:#e74c3c;}
 
-        /* Métricas */
-        .mc{
-            background:var(--card);border-radius:10px;padding:7px 6px;
-            text-align:center;box-shadow:var(--sombra);margin-bottom:3px;
-            position:relative;overflow:hidden;
-        }
-        .mc::before{content:"";position:absolute;left:0;top:0;bottom:0;width:3px;
-                    background:var(--azul);}
-        .mc.gold::before{background:var(--ambar);}
-        .mc.green::before{background:var(--verde);}
-        .mc.red::before{background:var(--rojo);}
-        .mc .l{font-size:.56rem;color:var(--tx-3);text-transform:uppercase;
-               font-weight:800;letter-spacing:.5px;}
-        .mc .v{font-size:.92rem;font-weight:900;color:var(--tx);
-               margin-top:2px;letter-spacing:-.2px;}
+    .stTabs [data-baseweb="tab-list"]{gap:0;background:transparent;padding:0;
+    border-bottom:1px solid var(--linea);border-radius:0;
+    overflow-x:auto!important;overflow-y:hidden;flex-wrap:nowrap!important;
+    justify-content:space-between;scrollbar-width:none;-ms-overflow-style:none;}
+    .stTabs [data-baseweb="tab-list"]::-webkit-scrollbar{display:none;}
+    .stTabs [data-baseweb="tab"]{border-radius:0;font-weight:700;
+    font-size:.95rem;padding:6px 12px;color:var(--tx-3)!important;
+    background:transparent!important;min-height:0;white-space:nowrap!important;
+    flex:0 0 auto!important;border-bottom:2px solid transparent;}
+    .stTabs [data-baseweb="tab"]:hover{color:var(--tx-2)!important;}
+    .stTabs [aria-selected="true"]{color:var(--azul)!important;
+    border-bottom:2px solid var(--azul)!important;background:transparent!important;}
+    .stTabs [data-baseweb="tab-highlight"]{display:none;}
+    .stTabs [data-baseweb="tab-border"]{display:none;}
 
-        /* Items genéricos */
-        .ci{
-            background:var(--card);border-radius:10px;padding:6px 9px;
-            margin-bottom:3px;box-shadow:var(--sombra-sm);
-        }
-        .ci .t{font-size:.78rem;font-weight:700;color:var(--tx);line-height:1.2;}
-        .ci .s{font-size:.64rem;color:var(--tx-3);line-height:1.3;margin-top:1px;}
-        .ci .row{display:flex;justify-content:space-between;align-items:baseline;}
-        .ci .estado{font-size:.64rem;font-weight:800;}
-        .ci .estado.ok{color:var(--verde);}
-        .ci .estado.pend{color:var(--rojo);}
+    div[data-testid="stAlert"]{background:#eff6ff!important;color:var(--tx)!important;
+    border-radius:9px!important;border-left:3px solid var(--azul)!important;
+    padding:5px 10px!important;margin:3px 0!important;}
+    div[data-testid="stAlert"] *{color:var(--tx)!important;font-size:.7rem!important;}
+    div[data-testid="stAlert"] svg{display:none;}
 
-        /* Carrito: caja del ítem */
-        .car-item-box{
-            background:#ffffff;border-radius:10px 10px 0 0;
-            padding:7px 11px 3px;margin-top:6px;
-            box-shadow:0 1px 4px rgba(15,23,42,.05);
-        }
-        .car-item-row{
-            display:flex;justify-content:space-between;align-items:baseline;gap:8px;
-        }
-        .car-item-name{
-            font-size:.82rem;font-weight:800;color:#0f172a;line-height:1.2;
-            flex:1;min-width:0;white-space:nowrap;overflow:hidden;
-            text-overflow:ellipsis;
-        }
-        .car-item-total{
-            font-size:.9rem;font-weight:900;color:#0e3a5a;
-            letter-spacing:-.3px;flex:0 0 auto;
-        }
-        .car-item-sub{
-            font-size:.64rem;color:#94a3b8;line-height:1.3;margin-top:1px;
-        }
+    .wa{display:block;text-align:center;background:#25D366;color:#fff!important;
+    padding:6px 5px;border-radius:9px;font-weight:700;text-decoration:none;
+    font-size:.7rem;line-height:1.1;box-shadow:0 2px 6px rgba(37,211,102,.25);}
 
-        /* Tabs */
-        .stTabs [data-baseweb="tab-list"]{
-            gap:0;background:transparent;padding:0;
-            border-bottom:1px solid var(--linea);border-radius:0;
-            overflow-x:auto !important;overflow-y:hidden;
-            flex-wrap:nowrap !important;justify-content:space-between;
-            scrollbar-width:none;-ms-overflow-style:none;
-            -webkit-overflow-scrolling:touch;
-        }
-        .stTabs [data-baseweb="tab-list"]::-webkit-scrollbar{display:none;}
-        .stTabs [data-baseweb="tab"]{
-            border-radius:0;font-weight:700;font-size:.95rem;
-            padding:6px 12px;color:var(--tx-3) !important;
-            background:transparent !important;min-height:0;
-            white-space:nowrap !important;flex:0 0 auto !important;
-            border-bottom:2px solid transparent;
-        }
-        .stTabs [data-baseweb="tab"]:hover{color:var(--tx-2) !important;}
-        .stTabs [aria-selected="true"]{
-            color:var(--azul) !important;
-            border-bottom:2px solid var(--azul) !important;
-            background:transparent !important;
-        }
-        .stTabs [data-baseweb="tab-highlight"]{display:none;}
-        .stTabs [data-baseweb="tab-border"]{display:none;}
+    .car-total{background:linear-gradient(135deg,var(--azul),var(--azul-2));
+    color:#fff;border-radius:12px;padding:9px 13px;margin-top:5px;
+    box-shadow:0 5px 14px rgba(14,58,90,.18);}
+    .car-total .row{display:flex;justify-content:space-between;
+    align-items:baseline;font-size:.75rem;opacity:.9;}
+    .car-total .row.big{font-size:1rem;font-weight:900;opacity:1;
+    margin-top:2px;letter-spacing:-.3px;}
+    .car-total .tasa-note{font-size:.56rem;opacity:.6;margin-top:4px;
+    text-transform:uppercase;letter-spacing:.4px;}
 
-        /* Alerts */
-        div[data-testid="stAlert"]{
-            background:#eff6ff !important;color:var(--tx) !important;
-            border-radius:9px !important;border-left:3px solid var(--azul) !important;
-            padding:5px 10px !important;margin:3px 0 !important;
-        }
-        div[data-testid="stAlert"] *{color:var(--tx) !important;font-size:.7rem !important;}
-        div[data-testid="stAlert"] svg{display:none;}
+    details>summary{list-style:none;padding:6px 10px!important;
+    font-size:.76rem;font-weight:700;color:var(--tx);background:var(--card);
+    border-radius:9px;box-shadow:var(--sombra-sm);}
+    [data-testid="stForm"]{border:none!important;background:transparent!important;
+    padding:0!important;}
 
-        /* WhatsApp */
-        .wa{
-            display:block;text-align:center;background:#25D366;color:#fff !important;
-            padding:6px 5px;border-radius:9px;font-weight:700;
-            text-decoration:none;font-size:.7rem;line-height:1.1;
-            box-shadow:0 2px 6px rgba(37,211,102,.25);
-        }
-
-        /* Carrito total */
-        .car-total{
-            background:linear-gradient(135deg,var(--azul),var(--azul-2));
-            color:#fff;border-radius:12px;padding:9px 13px;margin-top:5px;
-            box-shadow:0 5px 14px rgba(14,58,90,.18);
-        }
-        .car-total .row{display:flex;justify-content:space-between;
-                        align-items:baseline;font-size:.75rem;opacity:.9;}
-        .car-total .row.big{font-size:1rem;font-weight:900;opacity:1;
-                            margin-top:2px;letter-spacing:-.3px;}
-        .car-total .tasa-note{font-size:.56rem;opacity:.6;margin-top:4px;
-                              text-transform:uppercase;letter-spacing:.4px;}
-
-        /* Expander */
-        details > summary{
-            list-style:none;padding:6px 10px !important;
-            font-size:.76rem;font-weight:700;color:var(--tx);
-            background:var(--card);border-radius:9px;
-            box-shadow:var(--sombra-sm);
-        }
-
-        /* Form */
-        [data-testid="stForm"]{
-            border:none !important;background:transparent !important;
-            padding:0 !important;
-        }
-
-        /* Selector de emojis en cinta horizontal */
-        div[role="radiogroup"]{
-            display:flex !important;flex-wrap:nowrap !important;
-            overflow-x:auto !important;overflow-y:hidden !important;
-            gap:4px !important;padding:6px 4px !important;
-            background:#fff !important;border-radius:10px !important;
-            box-shadow:0 1px 4px rgba(15,23,42,.05) !important;
-            scrollbar-width:none;-ms-overflow-style:none;
-            -webkit-overflow-scrolling:touch;
-            margin-top:2px !important;margin-bottom:4px !important;
-        }
-        div[role="radiogroup"]::-webkit-scrollbar{display:none;}
-        div[role="radiogroup"] > label{
-            display:flex !important;align-items:center !important;
-            justify-content:center !important;flex:0 0 auto !important;
-            width:42px !important;height:42px !important;
-            padding:0 !important;margin:0 !important;
-            background:#f8fafc !important;
-            border:1.5px solid transparent !important;
-            border-radius:9px !important;cursor:pointer !important;
-            transition:all .12s ease !important;
-            font-size:1.4rem !important;line-height:1 !important;
-        }
-        div[role="radiogroup"] > label:hover{
-            background:#f1f5f9 !important;border-color:#cbd5e1 !important;
-        }
-        div[role="radiogroup"] > label[data-checked="true"],
-        div[role="radiogroup"] > label:has(input:checked){
-            background:#dbeafe !important;border-color:#0e3a5a !important;
-            box-shadow:0 0 0 2px rgba(14,58,90,.15) !important;
-        }
-        div[role="radiogroup"] > label > div:first-child{display:none !important;}
-        div[role="radiogroup"] > label > div:last-child,
-        div[role="radiogroup"] > label p{
-            font-size:1.4rem !important;margin:0 !important;
-            padding:0 !important;line-height:1 !important;
-        }
-
-        /* ============================================================
-           FIX MÓVIL: evitar que Streamlit apile columnas
-           Streamlit fuerza min-width ~240px en móvil → rompe layouts
-           ============================================================ */
-        @media (max-width: 700px){
-            [data-testid="stHorizontalBlock"]{
-                flex-wrap:nowrap !important;
-                gap:.25rem !important;
-            }
-            [data-testid="stHorizontalBlock"] > [data-testid="column"]{
-                min-width:0 !important;
-                width:auto !important;
-            }
-        }
-
-        /* Botones dentro de columnas: cuadrados compactos */
-        [data-testid="column"] div[data-testid="stButton"] > button{
-            padding:.25rem .2rem !important;
-            min-height:34px !important;
-            max-height:34px !important;
-            font-size:1rem !important;
-            font-weight:900 !important;
-            border-radius:8px !important;
-            line-height:1 !important;
-        }
-        </style>""",
-        unsafe_allow_html=True,
-    )
+    div[role="radiogroup"]{display:flex!important;flex-wrap:nowrap!important;
+    overflow-x:auto!important;overflow-y:hidden!important;gap:4px!important;
+    padding:6px 4px!important;background:#fff!important;border-radius:10px!important;
+    box-shadow:0 1px 4px rgba(15,23,42,.05)!important;scrollbar-width:none;
+    -ms-overflow-style:none;margin-top:2px!important;margin-bottom:4px!important;}
+    div[role="radiogroup"]::-webkit-scrollbar{display:none;}
+    div[role="radiogroup"]>label{display:flex!important;align-items:center!important;
+    justify-content:center!important;flex:0 0 auto!important;width:42px!important;
+    height:42px!important;padding:0!important;margin:0!important;
+    background:#f8fafc!important;border:1.5px solid transparent!important;
+    border-radius:9px!important;cursor:pointer!important;
+    transition:all .12s ease!important;font-size:1.4rem!important;line-height:1!important;}
+    div[role="radiogroup"]>label:hover{background:#f1f5f9!important;
+    border-color:#cbd5e1!important;}
+    div[role="radiogroup"]>label[data-checked="true"],
+    div[role="radiogroup"]>label:has(input:checked){background:#dbeafe!important;
+    border-color:#0e3a5a!important;box-shadow:0 0 0 2px rgba(14,58,90,.15)!important;}
+    div[role="radiogroup"]>label>div:first-child{display:none!important;}
+    div[role="radiogroup"]>label>div:last-child,
+    div[role="radiogroup"]>label p{font-size:1.4rem!important;margin:0!important;
+    padding:0!important;line-height:1!important;}
+    </style>""", unsafe_allow_html=True)
 
 
 # ============================================================
@@ -393,47 +267,35 @@ def init_db():
         cur.execute("""CREATE TABLE IF NOT EXISTS configuracion(
             llave TEXT PRIMARY KEY, valor TEXT NOT NULL)""")
         cur.execute("""CREATE TABLE IF NOT EXISTS productos(
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            emoji TEXT DEFAULT '',
+            id INTEGER PRIMARY KEY AUTOINCREMENT, emoji TEXT DEFAULT '',
             nombre TEXT NOT NULL COLLATE NOCASE,
             precio_usd REAL NOT NULL CHECK(precio_usd>=0),
             costo_usd REAL NOT NULL DEFAULT 0 CHECK(costo_usd>=0),
-            categoria TEXT DEFAULT 'General' COLLATE NOCASE,
-            sku TEXT DEFAULT '')""")
+            categoria TEXT DEFAULT 'General' COLLATE NOCASE, sku TEXT DEFAULT '')""")
         cur.execute("CREATE INDEX IF NOT EXISTS idx_prod_cat ON productos(categoria)")
         cur.execute("CREATE INDEX IF NOT EXISTS idx_prod_nom ON productos(nombre)")
         cur.execute("""CREATE TABLE IF NOT EXISTS clientes(
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            nombre TEXT NOT NULL COLLATE NOCASE,
+            id INTEGER PRIMARY KEY AUTOINCREMENT, nombre TEXT NOT NULL COLLATE NOCASE,
             alumno TEXT DEFAULT '' COLLATE NOCASE,
             representante TEXT DEFAULT '' COLLATE NOCASE,
-            telefono TEXT DEFAULT '',
-            categoria TEXT DEFAULT 'Alumno')""")
+            telefono TEXT DEFAULT '', categoria TEXT DEFAULT 'Alumno')""")
         cur.execute("CREATE INDEX IF NOT EXISTS idx_cli_alumno ON clientes(alumno)")
         cur.execute("""CREATE TABLE IF NOT EXISTS ventas(
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            fecha TEXT NOT NULL,
-            cliente_id INTEGER DEFAULT 0,
-            cliente_nombre TEXT DEFAULT '',
-            alumno TEXT DEFAULT '',
-            representante TEXT DEFAULT '',
-            monto_usd REAL NOT NULL,
-            monto_bs REAL NOT NULL,
+            id INTEGER PRIMARY KEY AUTOINCREMENT, fecha TEXT NOT NULL,
+            cliente_id INTEGER DEFAULT 0, cliente_nombre TEXT DEFAULT '',
+            alumno TEXT DEFAULT '', representante TEXT DEFAULT '',
+            monto_usd REAL NOT NULL, monto_bs REAL NOT NULL,
             tasa_usada REAL NOT NULL,
             estado TEXT NOT NULL CHECK(estado IN ('Pagado','Por cobrar')),
             detalles TEXT DEFAULT '')""")
         cur.execute("CREATE INDEX IF NOT EXISTS idx_ventas_estado ON ventas(estado)")
         cur.execute("CREATE INDEX IF NOT EXISTS idx_ventas_cliente ON ventas(cliente_id)")
         cur.execute("CREATE INDEX IF NOT EXISTS idx_ventas_fecha ON ventas(fecha)")
-        defaults = {
-            "tasa_bcv_usd": "0.00", "tasa_bcv_eur": "0.00",
-            "tasa_personalizada": "0.00", "tasa_activa_tipo": "BCV USD",
-            "negocio_nombre": "Tu Cantina Express", "negocio_rif": "",
-        }
-        cur.executemany(
-            "INSERT OR IGNORE INTO configuracion(llave,valor) VALUES(?,?)",
-            list(defaults.items()),
-        )
+        defaults = {"tasa_bcv_usd": "0.00", "tasa_bcv_eur": "0.00",
+                    "tasa_personalizada": "0.00", "tasa_activa_tipo": "BCV USD",
+                    "negocio_nombre": "Tu Cantina Express", "negocio_rif": ""}
+        cur.executemany("INSERT OR IGNORE INTO configuracion(llave,valor) VALUES(?,?)",
+                        list(defaults.items()))
 
 
 # ============================================================
@@ -442,17 +304,14 @@ def init_db():
 @st.cache_data(ttl=3, show_spinner=False)
 def get_config() -> dict:
     with db() as c:
-        rows = c.execute("SELECT llave,valor FROM configuracion").fetchall()
-    return dict(rows)
+        return dict(c.execute("SELECT llave,valor FROM configuracion").fetchall())
 
 
-def set_config(llave: str, valor: str) -> None:
+def set_config(llave, valor):
     with db(commit=True) as c:
-        c.execute(
-            "INSERT INTO configuracion(llave,valor) VALUES(?,?) "
-            "ON CONFLICT(llave) DO UPDATE SET valor=excluded.valor",
-            (llave, str(valor)),
-        )
+        c.execute("INSERT INTO configuracion(llave,valor) VALUES(?,?) "
+                  "ON CONFLICT(llave) DO UPDATE SET valor=excluded.valor",
+                  (llave, str(valor)))
     get_config.clear()
 
 
@@ -461,26 +320,21 @@ def get_productos() -> pd.DataFrame:
     with db() as c:
         return pd.read_sql_query(
             "SELECT id,emoji,nombre,precio_usd,costo_usd,categoria,sku "
-            "FROM productos ORDER BY categoria COLLATE NOCASE, nombre COLLATE NOCASE",
-            c,
-        )
+            "FROM productos ORDER BY categoria COLLATE NOCASE, "
+            "nombre COLLATE NOCASE", c)
 
 
-def add_producto(emoji, nombre, precio_usd, costo_usd, categoria, sku) -> None:
+def add_producto(emoji, nombre, precio_usd, costo_usd, categoria, sku):
     with db(commit=True) as c:
-        c.execute(
-            "INSERT INTO productos(emoji,nombre,precio_usd,costo_usd,categoria,sku) "
-            "VALUES(?,?,?,?,?,?)",
-            (
-                (emoji or "")[:8], nombre.strip(),
-                round(float(precio_usd), 2), round(float(costo_usd), 2),
-                (categoria or "General").strip(), (sku or "").strip(),
-            ),
-        )
+        c.execute("INSERT INTO productos(emoji,nombre,precio_usd,costo_usd,"
+                  "categoria,sku) VALUES(?,?,?,?,?,?)",
+                  ((emoji or "")[:8], nombre.strip(), round(float(precio_usd), 2),
+                   round(float(costo_usd), 2), (categoria or "General").strip(),
+                   (sku or "").strip()))
     get_productos.clear()
 
 
-def eliminar_producto(pid: int) -> None:
+def eliminar_producto(pid):
     with db(commit=True) as c:
         c.execute("DELETE FROM productos WHERE id=?", (int(pid),))
     get_productos.clear()
@@ -491,41 +345,29 @@ def get_clientes() -> pd.DataFrame:
     with db() as c:
         return pd.read_sql_query(
             "SELECT id,nombre,alumno,representante,telefono,categoria "
-            "FROM clientes ORDER BY alumno COLLATE NOCASE, nombre COLLATE NOCASE",
-            c,
-        )
+            "FROM clientes ORDER BY alumno COLLATE NOCASE, "
+            "nombre COLLATE NOCASE", c)
 
 
-def add_cliente(nombre, alumno, representante, telefono, categoria) -> None:
+def add_cliente(nombre, alumno, representante, telefono, categoria):
     with db(commit=True) as c:
-        c.execute(
-            "INSERT INTO clientes(nombre,alumno,representante,telefono,categoria) "
-            "VALUES(?,?,?,?,?)",
-            (
-                nombre.strip(), (alumno or "").strip(),
-                (representante or "").strip(),
-                sanitizar_telefono(telefono, con_prefijo=False),
-                (categoria or "Alumno").strip(),
-            ),
-        )
+        c.execute("INSERT INTO clientes(nombre,alumno,representante,"
+                  "telefono,categoria) VALUES(?,?,?,?,?)",
+                  (nombre.strip(), (alumno or "").strip(),
+                   (representante or "").strip(),
+                   sanitizar_telefono(telefono, con_prefijo=False),
+                   (categoria or "Alumno").strip()))
     get_clientes.clear()
 
 
-def registrar_venta(cliente_id, cliente_nombre, alumno, representante,
-                    monto_usd, monto_bs, tasa_usada, estado, detalles) -> None:
+def registrar_venta(cid, cn, al, rep, mu, mb, ta, es, det):
     with db(commit=True) as c:
-        c.execute(
-            "INSERT INTO ventas(fecha,cliente_id,cliente_nombre,alumno,"
-            "representante,monto_usd,monto_bs,tasa_usada,estado,detalles) "
-            "VALUES(?,?,?,?,?,?,?,?,?,?)",
-            (
-                ahora_ve().strftime("%Y-%m-%d %H:%M:%S"),
-                int(cliente_id or 0), cliente_nombre or "Anónimo",
-                alumno or "", representante or "",
-                round(float(monto_usd), 2), round(float(monto_bs), 2),
-                round(float(tasa_usada), 2), estado, detalles or "",
-            ),
-        )
+        c.execute("INSERT INTO ventas(fecha,cliente_id,cliente_nombre,alumno,"
+                  "representante,monto_usd,monto_bs,tasa_usada,estado,detalles) "
+                  "VALUES(?,?,?,?,?,?,?,?,?,?)",
+                  (ahora_ve().strftime("%Y-%m-%d %H:%M:%S"), int(cid or 0),
+                   cn or "Anónimo", al or "", rep or "", round(float(mu), 2),
+                   round(float(mb), 2), round(float(ta), 2), es, det or ""))
     get_ventas.clear()
     get_deudas.clear()
 
@@ -536,8 +378,7 @@ def get_ventas() -> pd.DataFrame:
         return pd.read_sql_query(
             "SELECT id,fecha,cliente_id,cliente_nombre,alumno,representante,"
             "monto_usd,monto_bs,tasa_usada,estado,detalles FROM ventas "
-            "ORDER BY id DESC", c,
-        )
+            "ORDER BY id DESC", c)
 
 
 @st.cache_data(ttl=2, show_spinner=False)
@@ -549,35 +390,32 @@ def get_deudas() -> pd.DataFrame:
             "ROUND(SUM(monto_usd),2) AS deuda_usd, "
             "ROUND(SUM(monto_bs),2) AS deuda_bs, COUNT(*) AS num_ventas "
             "FROM ventas WHERE estado='Por cobrar' GROUP BY cliente_id "
-            "HAVING deuda_usd > 0 ORDER BY deuda_usd DESC", c,
-        )
+            "HAVING deuda_usd > 0 ORDER BY deuda_usd DESC", c)
 
 
-def abonar_cliente(cliente_id: int) -> None:
+def abonar_cliente(cid):
     with db(commit=True) as c:
-        c.execute(
-            "UPDATE ventas SET estado='Pagado' "
-            "WHERE cliente_id=? AND estado='Por cobrar'", (int(cliente_id),),
-        )
+        c.execute("UPDATE ventas SET estado='Pagado' WHERE cliente_id=? "
+                  "AND estado='Por cobrar'", (int(cid),))
     get_ventas.clear()
     get_deudas.clear()
 
 
-def abonar_venta(venta_id: int) -> None:
+def abonar_venta(vid):
     with db(commit=True) as c:
-        c.execute("UPDATE ventas SET estado='Pagado' WHERE id=?", (int(venta_id),))
+        c.execute("UPDATE ventas SET estado='Pagado' WHERE id=?", (int(vid),))
     get_ventas.clear()
     get_deudas.clear()
 
 
-def eliminar_venta(venta_id: int) -> None:
+def eliminar_venta(vid):
     with db(commit=True) as c:
-        c.execute("DELETE FROM ventas WHERE id=?", (int(venta_id),))
+        c.execute("DELETE FROM ventas WHERE id=?", (int(vid),))
     get_ventas.clear()
     get_deudas.clear()
 
 
-def eliminar_todas_ventas() -> None:
+def eliminar_todas_ventas():
     with db(commit=True) as c:
         c.execute("DELETE FROM ventas")
         c.execute("DELETE FROM sqlite_sequence WHERE name='ventas'")
@@ -588,7 +426,7 @@ def eliminar_todas_ventas() -> None:
 # ============================================================
 # UTILIDADES
 # ============================================================
-def sanitizar_telefono(tel: str, con_prefijo: bool = True) -> str:
+def sanitizar_telefono(tel, con_prefijo=True):
     if tel is None:
         return ""
     d = "".join(ch for ch in str(tel) if ch.isdigit())
@@ -601,12 +439,10 @@ def sanitizar_telefono(tel: str, con_prefijo: bool = True) -> str:
         return d
     if d.startswith("58") and len(d) >= 12:
         return d
-    if len(d) == 10:
-        return "58" + d
-    return "58" + d
+    return "58" + d if len(d) == 10 else "58" + d
 
 
-def obtener_tasa_activa(cfg: dict) -> float:
+def obtener_tasa_activa(cfg):
     tipo = cfg.get("tasa_activa_tipo", "BCV USD")
     llave = {"BCV USD": "tasa_bcv_usd", "BCV EUR": "tasa_bcv_eur",
              "Personalizada": "tasa_personalizada"}.get(tipo, "tasa_bcv_usd")
@@ -616,44 +452,37 @@ def obtener_tasa_activa(cfg: dict) -> float:
         return 0.0
 
 
-def generar_enlace_whatsapp(telefono: str, mensaje: str) -> str:
-    t = sanitizar_telefono(telefono, con_prefijo=True)
-    if not t:
-        return ""
-    return f"https://wa.me/{t}?text={urllib.parse.quote(mensaje)}"
+def generar_enlace_whatsapp(tel, msg):
+    t = sanitizar_telefono(tel, con_prefijo=True)
+    return "" if not t else f"https://wa.me/{t}?text={urllib.parse.quote(msg)}"
 
 
-def construir_mensaje_recordatorio(representante, alumno,
-                                   monto_usd, monto_bs) -> str:
-    alu = (alumno or "").strip() or "su representado"
-    usd_txt = f"{round(float(monto_usd), 2):,.2f}".replace(
-        ",", "X").replace(".", ",").replace("X", ".")
-    bs_txt = f"{round(float(monto_bs), 2):,.2f}".replace(
-        ",", "X").replace(".", ",").replace("X", ".")
-    return (
-        "Hola! Muy buenos días. Le saludamos de parte de la cantina del Santa María. "
-        f"Su representado {alu} tiene un saldo pendiente de "
-        f"${usd_txt} equivalente a Bs. {bs_txt} a la tasa de hoy. "
-        "¡Muchas gracias!"
-    )
+def construir_mensaje_recordatorio(rep, alu, mu, mb):
+    a = (alu or "").strip() or "su representado"
+    usd = f"{round(float(mu), 2):,.2f}".replace(",", "X").replace(
+        ".", ",").replace("X", ".")
+    bs = f"{round(float(mb), 2):,.2f}".replace(",", "X").replace(
+        ".", ",").replace("X", ".")
+    return ("Hola! Muy buenos días. Le saludamos de parte de la cantina del "
+            f"Santa María. Su representado {a} tiene un saldo pendiente de "
+            f"${usd} equivalente a Bs. {bs} a la tasa de hoy. ¡Muchas gracias!")
 
 
-def fecha_corta(f: str) -> str:
+def fecha_corta(f):
     try:
-        dt = datetime.strptime(f, "%Y-%m-%d %H:%M:%S")
-        return dt.strftime("%d/%m · %H:%M")
+        return datetime.strptime(f, "%Y-%m-%d %H:%M:%S").strftime("%d/%m · %H:%M")
     except Exception:
         return f[:16]
 
 
 # ============================================================
-# CALLBACKS CARRITO
+# CARRITO
 # ============================================================
-def _car_key(pid) -> str:
+def _car_key(pid):
     return f"p{int(pid)}"
 
 
-def cb_add(pid: int, emoji: str, nombre: str, precio: float):
+def cb_add(pid, emoji, nombre, precio):
     k = _car_key(pid)
     car = st.session_state.carrito
     if k in car:
@@ -663,12 +492,12 @@ def cb_add(pid: int, emoji: str, nombre: str, precio: float):
                   "precio": round(float(precio), 2), "qty": 1}
 
 
-def cb_inc(k: str):
+def cb_inc(k):
     if k in st.session_state.carrito:
         st.session_state.carrito[k]["qty"] += 1
 
 
-def cb_dec(k: str):
+def cb_dec(k):
     car = st.session_state.carrito
     if k in car:
         car[k]["qty"] -= 1
@@ -676,67 +505,97 @@ def cb_dec(k: str):
             del car[k]
 
 
-def cb_del(k: str):
+def cb_del(k):
     st.session_state.carrito.pop(k, None)
 
 
-def carrito_total_usd() -> float:
-    return round(
-        sum(v["precio"] * v["qty"] for v in st.session_state.carrito.values()), 2,
-    )
+def carrito_total_usd():
+    return round(sum(v["precio"] * v["qty"]
+                     for v in st.session_state.carrito.values()), 2)
 
 
-def carrito_detalle_txt() -> str:
-    return " | ".join(
-        f"{v['qty']}x {v['nombre']} (${v['precio']:.2f})"
-        for v in st.session_state.carrito.values()
-    )
+def carrito_detalle_txt():
+    return " | ".join(f"{v['qty']}x {v['nombre']} (${v['precio']:.2f})"
+                      for v in st.session_state.carrito.values())
 
 
 # ============================================================
-# HEADER
+# PROCESAR ACCIONES VÍA QUERY PARAMS (HTML <a>)
 # ============================================================
-def render_header(cfg: dict):
+def procesar_acciones_carrito():
+    """Lee ?acc=X&k=Y de la URL, ejecuta y limpia."""
+    try:
+        params = st.query_params
+    except Exception:
+        try:
+            params = st.experimental_get_query_params()
+        except Exception:
+            return
+
+    try:
+        acc = params.get("acc")
+        k = params.get("k")
+    except Exception:
+        return
+
+    if isinstance(acc, list):
+        acc = acc[0] if acc else None
+    if isinstance(k, list):
+        k = k[0] if k else None
+
+    if not acc or not k:
+        return
+
+    if acc == "dec":
+        cb_dec(k)
+    elif acc == "inc":
+        cb_inc(k)
+    elif acc == "del":
+        cb_del(k)
+
+    try:
+        st.query_params.clear()
+    except Exception:
+        try:
+            st.experimental_set_query_params()
+        except Exception:
+            pass
+    st.rerun()
+
+
+# ============================================================
+# HEADER Y MÉTRICAS
+# ============================================================
+def render_header(cfg):
     t = obtener_tasa_activa(cfg)
     tipo = cfg.get("tasa_activa_tipo", "BCV USD")
     usd = float(cfg.get("tasa_bcv_usd", 0) or 0)
     eur = float(cfg.get("tasa_bcv_eur", 0) or 0)
     st.markdown(
-        f"""<div class="hdr">
-            <div class="hdr-top">
-                <span>🍽️ Tu Cantina Express</span>
-                <span class="date">{ahora_ve().strftime('%d/%m/%Y')}</span>
-            </div>
-            <div class="hdr-tasa">
-                <span class="lbl">{tipo}</span>
-                <span class="val">Bs. {t:,.2f}</span>
-            </div>
-            <div class="hdr-alt">
-                USD {usd:,.2f}<span class="dot">·</span>EUR {eur:,.2f}
-            </div>
-        </div>""",
-        unsafe_allow_html=True,
-    )
+        f'<div class="hdr"><div class="hdr-top">'
+        f'<span>🍽️ Tu Cantina Express</span>'
+        f'<span class="date">{ahora_ve().strftime("%d/%m/%Y")}</span>'
+        f'</div><div class="hdr-tasa"><span class="lbl">{tipo}</span>'
+        f'<span class="val">Bs. {t:,.2f}</span></div>'
+        f'<div class="hdr-alt">USD {usd:,.2f}'
+        f'<span class="dot">·</span>EUR {eur:,.2f}</div></div>',
+        unsafe_allow_html=True)
 
 
-def metric_card(label: str, value: str, variante: str = ""):
-    st.markdown(
-        f'<div class="mc {variante}"><div class="l">{label}</div>'
-        f'<div class="v">{value}</div></div>',
-        unsafe_allow_html=True,
-    )
+def metric_card(label, value, variante=""):
+    st.markdown(f'<div class="mc {variante}"><div class="l">{label}</div>'
+                f'<div class="v">{value}</div></div>', unsafe_allow_html=True)
 
 
 # ============================================================
 # POS
 # ============================================================
-def _finalizar_venta(estado: str, tasa: float):
-    car = st.session_state.carrito
-    if not car:
+def _finalizar_venta(estado, tasa):
+    if not st.session_state.carrito:
         st.warning("El carrito está vacío.")
         return
-    total_usd = carrito_total_usd()
-    total_bs = round(total_usd * tasa, 2)
+    tu = carrito_total_usd()
+    tb = round(tu * tasa, 2)
     cid = int(st.session_state.get("cliente_sel", 0) or 0)
     if cid > 0:
         df = get_clientes()
@@ -748,17 +607,15 @@ def _finalizar_venta(estado: str, tasa: float):
             cid, cn, al, rep = 0, "Anónimo", "", ""
     else:
         cid, cn, al, rep = 0, "Anónimo", "", ""
-    registrar_venta(cid, cn, al, rep, total_usd, total_bs,
-                    tasa, estado, carrito_detalle_txt())
+    registrar_venta(cid, cn, al, rep, tu, tb, tasa, estado, carrito_detalle_txt())
     st.session_state["_reset_venta"] = True
     st.session_state["_venta_msg"] = (
         f"{'✅ PAGADO' if estado == 'Pagado' else '🔴 FIADO'}: "
-        f"${total_usd:.2f} / Bs. {total_bs:,.2f}"
-    )
+        f"${tu:.2f} / Bs. {tb:,.2f}")
     st.session_state["_venta_estado"] = estado
 
 
-def modulo_pos(cfg: dict):
+def modulo_pos(cfg):
     tasa = obtener_tasa_activa(cfg)
     pdf = get_productos()
 
@@ -802,14 +659,12 @@ def modulo_pos(cfg: dict):
                         f'<div class="n">{r["nombre"]}</div>'
                         f'<div class="p">${float(r["precio_usd"]):.2f}</div>'
                         f'<div class="b">Bs. {pb:,.2f}</div></div>',
-                        unsafe_allow_html=True,
-                    )
+                        unsafe_allow_html=True)
                     st.button("Agregar", key=f"add_{r['id']}", on_click=cb_add,
                               args=(int(r["id"]), r["emoji"] or "",
                                     r["nombre"], float(r["precio_usd"])),
                               use_container_width=True)
 
-    # ========== CARRITO ==========
     st.markdown('<div class="sec">Carrito</div>', unsafe_allow_html=True)
     car = st.session_state.carrito
     if not car:
@@ -823,35 +678,28 @@ def modulo_pos(cfg: dict):
             f'<div class="car-item-box">'
             f'<div class="car-item-row">'
             f'<span class="car-item-name">{item["emoji"]} {item["nombre"]}</span>'
-            f'<span class="car-item-total">${sub_usd:.2f}</span>'
-            f'</div>'
+            f'<span class="car-item-total">${sub_usd:.2f}</span></div>'
             f'<div class="car-item-sub">{item["qty"]}× ${item["precio"]:.2f} '
             f'· Bs. {sub_bs:,.2f}</div></div>',
-            unsafe_allow_html=True,
-        )
-        cb1, cb2, cb3, cb4 = st.columns([1, 1, 1, 7], gap="small")
-        with cb1:
-            st.button("−", key=f"r_{k}", on_click=cb_dec, args=(k,),
-                      use_container_width=True)
-        with cb2:
-            st.button("+", key=f"s_{k}", on_click=cb_inc, args=(k,),
-                      use_container_width=True)
-        with cb3:
-            st.button("✕", key=f"d_{k}", on_click=cb_del, args=(k,),
-                      use_container_width=True)
-        with cb4:
-            st.empty()
+            unsafe_allow_html=True)
+        st.markdown(
+            f'<div class="btn-row">'
+            f'<a href="?acc=dec&k={k}" target="_self" class="mini-btn">−</a>'
+            f'<a href="?acc=inc&k={k}" target="_self" class="mini-btn">+</a>'
+            f'<a href="?acc=del&k={k}" target="_self" class="mini-btn del">✕</a>'
+            f'</div>',
+            unsafe_allow_html=True)
 
     total_usd = carrito_total_usd()
     total_bs = round(total_usd * tasa, 2)
     st.markdown(
         f'<div class="car-total">'
-        f'<div class="row"><span>Total USD</span><span>${total_usd:.2f}</span></div>'
+        f'<div class="row"><span>Total USD</span>'
+        f'<span>${total_usd:.2f}</span></div>'
         f'<div class="row big"><span>Total Bs.</span>'
         f'<span>Bs. {total_bs:,.2f}</span></div>'
         f'<div class="tasa-note">Tasa aplicada Bs. {tasa:,.2f}</div></div>',
-        unsafe_allow_html=True,
-    )
+        unsafe_allow_html=True)
 
     st.markdown('<div class="sec">Cliente</div>', unsafe_allow_html=True)
     cdf = get_clientes()
@@ -883,35 +731,31 @@ def modulo_pos(cfg: dict):
 # ============================================================
 # CRM
 # ============================================================
-def modulo_crm(cfg: dict):
+def modulo_crm(cfg):
     tasa = obtener_tasa_activa(cfg)
     st.markdown('<div class="sec">Directorio</div>', unsafe_allow_html=True)
     cdf = get_clientes()
     ddf = get_deudas()
-    deuda_map = {}
+    dm = {}
     if not ddf.empty:
         for _, d in ddf.iterrows():
-            deuda_map[int(d["cliente_id"])] = {
-                "usd": float(d["deuda_usd"]), "num": int(d["num_ventas"]),
-            }
+            dm[int(d["cliente_id"])] = {"usd": float(d["deuda_usd"])}
     if cdf.empty:
         st.info("Sin clientes registrados.")
     else:
         for _, c in cdf.iterrows():
             cid = int(c["id"])
-            de = deuda_map.get(cid, {"usd": 0.0, "num": 0})
+            de = dm.get(cid, {"usd": 0.0})
             tiene = de["usd"] > 0.005
             dbs = round(de["usd"] * tasa, 2)
             st.markdown(
-                f'<div class="ci">'
-                f'<div class="t">👤 {c["alumno"] or c["nombre"]}</div>'
+                f'<div class="ci"><div class="t">👤 {c["alumno"] or c["nombre"]}</div>'
                 f'<div class="s">Rep: {c["representante"] or "—"} · '
                 f'📱 {c["telefono"] or "—"}</div>'
                 f'<div class="s" style="margin-top:2px">Deuda: '
                 f'<b style="color:{"#e74c3c" if tiene else "#27ae60"}">'
                 f'${de["usd"]:.2f}</b> · Bs. {dbs:,.2f}</div></div>',
-                unsafe_allow_html=True,
-            )
+                unsafe_allow_html=True)
             c1, c2, c3 = st.columns([2, 2, 1], gap="small")
             with c1:
                 if tiene and st.button("Abonar", key=f"ab_{cid}",
@@ -979,21 +823,18 @@ def modulo_crm(cfg: dict):
 # ============================================================
 # PRODUCTOS
 # ============================================================
-EMOJIS = [
-    "🍔","🌭","🍕","🥟","🍟","🌮","🌯","🥪","🍗","🍖","🥗","🍝",
-    "🍜","🍲","🍛","🍱","🥘","🥤","💧","🧃","☕","🍵","🧋","🍺",
-    "🥛","🍹","🍰","🍪","🍫","🍩","🍦","🧁","🍮","🥧","🍎","🍌",
-    "🍓","🍊","🍇","🥭","🍉","🍴","🥄","🧂","🍿","🥨","🥐","🍳",
-    "🥞","🧇","🥩","🥓","🍤","🍣","🍙","🍘","🥠","🥡","🍢","🍡",
-]
+EMOJIS = ["🍔","🌭","🍕","🥟","🍟","🌮","🌯","🥪","🍗","🍖","🥗","🍝",
+          "🍜","🍲","🍛","🍱","🥘","🥤","💧","🧃","☕","🍵","🧋","🍺",
+          "🥛","🍹","🍰","🍪","🍫","🍩","🍦","🧁","🍮","🥧","🍎","🍌",
+          "🍓","🍊","🍇","🥭","🍉","🍴","🥄","🧂","🍿","🥨","🥐","🍳",
+          "🥞","🧇","🥩","🥓","🍤","🍣","🍙","🍘","🥠","🥡","🍢","🍡"]
 
 
-def modulo_productos(cfg: dict):
+def modulo_productos(cfg):
     tasa = obtener_tasa_activa(cfg)
     st.markdown('<div class="sec">Nuevo producto</div>', unsafe_allow_html=True)
     with st.form("form_prod", clear_on_submit=False):
-        em = st.radio("Emoji", EMOJIS, horizontal=True, key="prod_emoji",
-                      label_visibility="visible")
+        em = st.radio("Emoji", EMOJIS, horizontal=True, key="prod_emoji")
         nom = st.text_input("Nombre *")
         c1, c2 = st.columns(2, gap="small")
         with c1:
@@ -1033,8 +874,7 @@ def modulo_productos(cfg: dict):
                 f'<div class="t" style="color:#f39c12">'
                 f'${float(r["precio_usd"]):.2f}</div>'
                 f'<div class="s">Bs. {pb:,.2f}</div></div></div></div>',
-                unsafe_allow_html=True,
-            )
+                unsafe_allow_html=True)
         st.markdown('<div class="sec">Eliminar producto</div>',
                     unsafe_allow_html=True)
         opciones = {int(r["id"]): f"{r['emoji']} {r['nombre']}"
@@ -1051,14 +891,13 @@ def modulo_productos(cfg: dict):
 # ============================================================
 # REPORTES
 # ============================================================
-def _reporte_txt(vdf: pd.DataFrame, cfg: dict) -> str:
+def _reporte_txt(vdf, cfg):
     t = obtener_tasa_activa(cfg)
     L = ["=" * 62, "      TU CANTINA EXPRESS · REPORTE DE OPERACIONES",
          "=" * 62,
          f"Generado : {ahora_ve().strftime('%d/%m/%Y %H:%M:%S')} (hora VE)",
          f"Tasa     : Bs. {t:,.2f} por USD ({cfg.get('tasa_activa_tipo','')})",
-         f"Negocio  : {cfg.get('negocio_nombre','')}",
-         "-" * 62, ""]
+         f"Negocio  : {cfg.get('negocio_nombre','')}", "-" * 62, ""]
     if vdf.empty:
         L.append("Sin operaciones registradas.")
         return "\n".join(L)
@@ -1085,13 +924,14 @@ def _reporte_txt(vdf: pd.DataFrame, cfg: dict) -> str:
     return "\n".join(L)
 
 
-def modulo_reportes(cfg: dict):
+def modulo_reportes(cfg):
     tasa = obtener_tasa_activa(cfg)
     vdf = get_ventas()
     pdf = get_productos()
     tu = round(float(vdf["monto_usd"].sum()), 2) if not vdf.empty else 0.0
     tb = round(float(vdf["monto_bs"].sum()), 2) if not vdf.empty else 0.0
-    deu = (round(float(vdf.loc[vdf["estado"] == "Por cobrar", "monto_usd"].sum()), 2)
+    deu = (round(float(vdf.loc[vdf["estado"] == "Por cobrar",
+                                   "monto_usd"].sum()), 2)
            if not vdf.empty else 0.0)
     n = len(vdf)
     if not pdf.empty and tu > 0:
@@ -1119,14 +959,14 @@ def modulo_reportes(cfg: dict):
         st.info("Sin ventas registradas.")
         return
     for _, r in vdf.head(30).iterrows():
-        pendiente = r["estado"] == "Por cobrar"
-        cls = "pend" if pendiente else "ok"
-        etiqueta = "Por cobrar" if pendiente else "Pagado"
-        alumno = r["alumno"] or r["cliente_nombre"] or "Anónimo"
+        pend = r["estado"] == "Por cobrar"
+        cls = "pend" if pend else "ok"
+        et = "Por cobrar" if pend else "Pagado"
+        al = r["alumno"] or r["cliente_nombre"] or "Anónimo"
         st.markdown(
-            f'<div class="ci">'
-            f'<div class="row"><span class="t">#{int(r["id"])} · {alumno}</span>'
-            f'<span class="estado {cls}">{etiqueta}</span></div>'
+            f'<div class="ci"><div class="row">'
+            f'<span class="t">#{int(r["id"])} · {al}</span>'
+            f'<span class="estado {cls}">{et}</span></div>'
             f'<div class="s">{fecha_corta(r["fecha"])} · '
             f'<b>${float(r["monto_usd"]):.2f}</b> · '
             f'Bs. {float(r["monto_bs"]):,.2f} · {r["detalles"]}</div></div>',
@@ -1136,17 +976,14 @@ def modulo_reportes(cfg: dict):
 
     st.markdown('<div class="sec">Eliminar venta</div>', unsafe_allow_html=True)
     with st.expander("Eliminar una venta del historial", expanded=False):
-        opciones_v = {}
+        opc = {}
         for _, r in vdf.iterrows():
-            etq = (f"#{int(r['id'])} · {fecha_corta(r['fecha'])} · "
-                   f"${float(r['monto_usd']):.2f} · "
-                   f"{r['alumno'] or r['cliente_nombre'] or 'Anónimo'} · "
-                   f"{r['estado']}")
-            opciones_v[int(r["id"])] = etq
-        vid = st.selectbox("Selecciona la venta a eliminar",
-                           list(opciones_v.keys()),
-                           format_func=lambda x: opciones_v[x],
-                           key="elim_venta_sel")
+            opc[int(r["id"])] = (f"#{int(r['id'])} · {fecha_corta(r['fecha'])}"
+                                 f" · ${float(r['monto_usd']):.2f} · "
+                                 f"{r['alumno'] or r['cliente_nombre'] or 'Anónimo'}"
+                                 f" · {r['estado']}")
+        vid = st.selectbox("Selecciona la venta a eliminar", list(opc.keys()),
+                           format_func=lambda x: opc[x], key="elim_venta_sel")
         fila = vdf[vdf["id"] == vid].iloc[0]
         st.markdown(
             f'<div class="ci" style="margin-top:6px">'
@@ -1159,10 +996,10 @@ def modulo_reportes(cfg: dict):
             f'<div class="s">Estado: {fila["estado"]}</div>'
             f'<div class="s">Productos: {fila["detalles"]}</div></div>',
             unsafe_allow_html=True)
-        confirmar = st.checkbox("Confirmo eliminar esta venta permanentemente",
-                                key="elim_venta_conf")
+        conf = st.checkbox("Confirmo eliminar esta venta permanentemente",
+                           key="elim_venta_conf")
         if st.button("Eliminar esta venta", use_container_width=True,
-                     disabled=not confirmar):
+                     disabled=not conf):
             eliminar_venta(vid)
             st.success(f"Venta #{vid} eliminada.")
             st.rerun()
@@ -1184,8 +1021,7 @@ def modulo_reportes(cfg: dict):
         w.writerow([r["id"], r["fecha"], r["cliente_nombre"], r["alumno"],
                     r["representante"], f"{float(r['monto_usd']):.2f}",
                     f"{float(r['monto_bs']):.2f}",
-                    f"{float(r['tasa_usada']):.2f}", r["estado"],
-                    r["detalles"]])
+                    f"{float(r['tasa_usada']):.2f}", r["estado"], r["detalles"]])
     csv_bytes = buf.getvalue().encode("utf-8-sig")
     txt_bytes = _reporte_txt(vdf, cfg).encode("utf-8")
     hoy = ahora_ve().strftime("%Y%m%d_%H%M")
@@ -1205,7 +1041,7 @@ def modulo_reportes(cfg: dict):
 # ============================================================
 # CONFIGURACIÓN
 # ============================================================
-def modulo_config(cfg: dict):
+def modulo_config(cfg):
     st.markdown('<div class="sec">Tasas del día</div>', unsafe_allow_html=True)
     if obtener_tasa_activa(cfg) == 0:
         st.warning("⚠️ La tasa activa está en Bs. 0.00. "
@@ -1223,8 +1059,8 @@ def modulo_config(cfg: dict):
         per = st.number_input("Personalizada (Bs/USD)", min_value=0.0,
                               value=float(cfg.get("tasa_personalizada", 0) or 0),
                               step=0.10, format="%.2f")
-        tipo_actual = cfg.get("tasa_activa_tipo", "BCV USD")
-        idx = TIPOS_TASA.index(tipo_actual) if tipo_actual in TIPOS_TASA else 0
+        ta_actual = cfg.get("tasa_activa_tipo", "BCV USD")
+        idx = TIPOS_TASA.index(ta_actual) if ta_actual in TIPOS_TASA else 0
         ta = st.selectbox("Tasa activa del día", list(TIPOS_TASA), index=idx)
         st.markdown('<div class="sec">Datos del negocio</div>',
                     unsafe_allow_html=True)
@@ -1254,12 +1090,9 @@ def modulo_config(cfg: dict):
 # ESTADO / RESET
 # ============================================================
 def init_state():
-    defaults = {
-        "carrito": {}, "busqueda": "", "cat_fil": "Todas",
-        "cliente_sel": 0, "_reset_venta": False, "_reset_cliente": False,
-        "_venta_msg": None, "_venta_estado": None,
-        "prod_emoji": EMOJIS[0],
-    }
+    defaults = {"carrito": {}, "busqueda": "", "cat_fil": "Todas",
+                "cliente_sel": 0, "_reset_venta": False, "_reset_cliente": False,
+                "_venta_msg": None, "_venta_estado": None, "prod_emoji": EMOJIS[0]}
     for k, v in defaults.items():
         if k not in st.session_state:
             st.session_state[k] = v
@@ -1288,6 +1121,7 @@ def main():
     init_db()
     init_state()
     aplicar_reset_pendiente()
+    procesar_acciones_carrito()   # NUEVO: lee ?acc=X&k=Y
     cfg = get_config()
     render_header(cfg)
     t1, t2, t3, t4, t5 = st.tabs(["🛒", "👥", "➕", "📊", "⚙️"])
